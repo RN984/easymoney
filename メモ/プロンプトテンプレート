@@ -1,0 +1,225 @@
+# 役割
+
+
+# ファイル構成
+src
+ ├── index.ts (型定義: User提供のInterface)
+ ├── database (DB初期化)
+ │    └── db.ts             // SQLiteの接続・テーブル作成初期化
+ ├── components (共通UI)
+ │    ├── Button.tsx
+ │    └── HamburgerMenu.tsx // 左上のナビゲーション用
+ ├── services (データアクセス層: DB操作の責務)
+ │    ├── masterService.ts  // カテゴリ、コインのマスタ取得
+ │    └── transactionService.ts // 家計簿データのCRUD、集計クエリ
+ ├── hooks (全体共通のロジック)
+ │    └── useNavigation.ts
+ └── screens
+      ├── InputScreen (画面1: 入力)
+      │    ├── index.tsx         // 画面全体のレイアウト
+      │    ├── components
+      │    │    ├── ProgressBar.tsx  // (1.1) 予算進捗バー
+      │    │    ├── RadialMenu.tsx   // (1.2) カテゴリ選択メニュー
+      │    │    └── CoinList.tsx     // (1.3) コイン一覧
+      │    └── hooks
+      │         └── useCoinInput.ts  // ★重要: 3秒ルールのロジック
+      ├── HistoryScreen (画面2: 履歴)
+      │    ├── index.tsx         // 画面全体のレイアウト
+      │    ├── components
+      │    │    ├── MonthlyChart.tsx    // (2.2) 月次棒グラフ
+      │    │    ├── TransactionList.tsx // (2.3) 親(Household)リスト
+      │    │    └── TransactionItem.tsx // (2.3) 子(HouseholdItem)詳細
+      │    └── hooks
+      │         └── useHistoryData.ts   // グラフ・リスト用データ取得
+      └── SettingsScreen ...
+
+## ファイル間のやり取りと役割
+各要件を実現するために、どのファイルが何を担当し、どう連携するかを解説します。
+
+A. データアクセス層 (src/services)
+UI（画面）は直接SQLを書きません。この層がDBとの翻訳を行います。
+
+database/db.ts
+
+アプリ起動時に SQLite.openDatabase し、テーブルが存在しなければ CREATE TABLE します。
+
+services/transactionService.ts
+
+役割: Household と HouseholdItem の操作。
+
+メソッド例:
+
+createHeader(categoryId): 親テーブル(Household)を新規作成しIDを返す。
+
+addItem(headerId, coinId, amount): 指定された親IDに紐づく子データ(HouseholdItem)を追加する。
+
+getMonthlySummary(): 画面2の棒グラフ用に、月ごとの合計金額を集計して返す（SQLの SUM と GROUP BY を使用）。
+
+getTransactions(month): 指定月のデータを親子結合（JOIN）して返す。
+
+B. 画面1：入力機能 (screens/InputScreen)
+要件：カテゴリ選択 → コイン連打（3秒ルール）による保存
+
+index.tsx (View)
+
+役割: 各コンポーネントの配置。useCoinInput フックから状態を受け取り、子コンポーネントに渡します。
+
+components/RadialMenu.tsx
+
+役割: マスタ(M_カテゴリ)を表示し、ユーザーが選択した categoryId を親へ通知します。
+
+components/CoinList.tsx
+
+役割: マスタ(M_コイン)を表示し、タップされたら coinId と 金額 を通知します。
+
+hooks/useCoinInput.ts (Logic / State)
+
+★最重要: ここで「3秒ルール」を管理します。
+
+保持するState:
+
+currentCategoryId: 現在選択中のカテゴリ。
+
+lastTransactionId: 直近で作られた親(Household)のID。
+
+lastTapTime: 最後にコインをタップした時刻。
+
+ロジックの流れ:
+
+CoinListからタップイベントを受け取る。
+
+Date.now() と lastTapTime を比較。
+
+3秒以内 かつ lastTransactionId がある場合:
+
+transactionService.addItem(lastTransactionId, ...) を呼ぶ（同じ親に追加）。
+
+3秒経過 または 初回の場合:
+
+transactionService.createHeader(...) で新しい親を作成。
+
+返ってきたIDを lastTransactionId にセット。
+
+transactionService.addItem(newId, ...) を呼ぶ。
+
+lastTapTime を現在時刻に更新。
+
+C. 画面1：プログレスバー (screens/InputScreen/components/ProgressBar.tsx)
+やり取り:
+
+マウント時、または入力完了時に transactionService.getMonthlySummary() を呼び出し、今月の合計金額を取得。
+
+設定されている上限金額（別途Settings等で保存）と比較し、％を計算して描画します。
+
+ここをタップすると、Navigationを使って画面2へ遷移させます。
+
+D. 画面2：一覧・分析 (screens/HistoryScreen)
+要件：月次グラフ、リスト表示、編集・展開
+
+hooks/useHistoryData.ts
+
+役割: 画面2に必要なデータをまとめて取得します。
+
+月が変更されたら（横スクロール等）、その月のデータを transactionService から再取得してStateを更新します。
+
+components/MonthlyChart.tsx
+
+役割: useHistoryData から渡された集計データ（例: { "2023-10": 50000, "2023-11": 45000 }）を受け取り、棒グラフを描画します。
+
+components/TransactionList.tsx
+
+役割: 親(Household)のリストを表示します。
+
+アコーディオン機能:
+
+各行をタップすると、その行の transactionId をキーにして、State内の「展開中のIDリスト」に追加します。
+
+展開された行の下に、子(HouseholdItem)のリストを表示します。
+
+編集・削除:
+
+各行の削除ボタン → transactionService.deleteHeader(id)
+
+アイテム名等の編集 → transactionService.updateHeader(id, { transaction: "新しい名前" })
+
+データフローのまとめ
+ユーザーが「食費」を選んで「100円」を2回連続でタップした場合のファイル間のデータの流れは以下のようになります。
+
+User: RadialMenu で「食費」を選択 → useCoinInput の currentCategoryId が更新。
+
+User: CoinList の「100円」をタップ。
+
+Hook (useCoinInput):
+
+前回タップから時間が空いていると判断。
+
+Service: transactionService.createHeader("食費") を呼び出し。
+
+DB: T_家計簿 にINSERT。ID H-001 が返る。
+
+Service: transactionService.addItem("H-001", "100円") を呼び出し。
+
+DB: T_家計簿明細 にINSERT。
+
+Hook: lastTransactionId = H-001, lastTapTime = now に更新。
+
+User: 2秒後に再度「100円」をタップ。
+
+Hook (useCoinInput):
+
+前回から2秒（<3秒）と判断。
+
+Service: 新規作成せず、既存の H-001 を使用して transactionService.addItem("H-001", "100円") を呼び出し。
+
+DB: T_家計簿明細 にINSERT（親IDは H-001）。
+
+Hook: lastTapTime のみを更新。
+
+## カラム
+// index.ts
+
+// ==========================================
+// M_カテゴリ (Master Table)
+// ==========================================
+export interface Category {
+  id: string; 
+  name: string; 
+  color: string;
+}
+
+// ==========================================
+// M_コイン (Master Header)
+// ==========================================
+export interface Coin {
+  id: string;
+  coin: 1 | 5 | 10 | 50 | 100 | 500 | 1000 | 5000 | 10000;  // [Enum] VALUE: {1,5,10,50,100,500,1000,5000,10000}
+}
+
+
+// ==========================================
+// T_家計簿 (Transaction Header)
+// ==========================================
+export interface Household {
+  id: string;
+  categoryId: string;
+  transaction: string; 
+  //totalPrice は Formura なのでデータベースからは削除。
+  memo?: string;
+  createdAt: Date;
+}
+
+// ==========================================
+// T_家計簿明細 (Transaction Detail)
+// ==========================================
+export interface HouseholdItem {
+  id: string;          // [KEY] UNIQUEID()
+  
+  // [Ref] IsPartOf: true (親テーブルへの参照)
+  // AppSheetではこれで親子関係を作りますが、
+  // React NativeでもこのIDを使ってフィルタリング(SELECT)します。
+  categoryId: string;  // [Ref] M_カテゴリ
+  transactionId: string;   
+  item?: string;        // Text
+  amount: number;      // Price
+  memo?: string;       // LongText
+}
