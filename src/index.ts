@@ -1,8 +1,5 @@
 // src/index.ts
 
-// SQLiteの日付は ISO8601 文字列 (YYYY-MM-DDTHH:mm:ss.sssZ) として扱います
-export type datetime = string;
-
 // ==========================================
 // M_カテゴリ (Master Table)
 // ==========================================
@@ -15,9 +12,11 @@ export interface Category {
 // ==========================================
 // M_コイン (Master Header)
 // ==========================================
+export type CoinValue = 1 | 5 | 10 | 50 | 100 | 500 | 1000 | 5000 | 10000;
+
 export interface Coin {
   id: string;
-  coin: 1 | 5 | 10 | 50 | 100 | 500 | 1000 | 5000 | 10000;
+  coin: CoinValue;
 }
 
 // ==========================================
@@ -27,8 +26,9 @@ export interface Household {
   id: string;             // UUID
   categoryId: string;     // Category ID
   transactionName?: string; 
+  totalAmount: number;    // 合計金額
   memo?: string;
-  createdAt: datetime;
+  createdAt: Date;
 }
 
 // ==========================================
@@ -41,19 +41,11 @@ export interface HouseholdItem {
   item?: string;          // 品名
   amount: number;         // 金額
   memo?: string;
-  createdAt: datetime;
+  createdAt: Date;
 }
 
-// ==========================================
-// 結合クエリ結果用 (JOIN Result)
-// ==========================================
-export interface TransactionJoinResult {
-  headerId: string;
-  headerCategory: string; // カテゴリ名が入る想定
-  transactionName: string | null;
-  itemId: string;
-  itemCategory: string | null;
-  itemAmount: number;
-  itemMemo: string | null;
-  createdAt: datetime;
-}
+/**
+ * 新規作成時に必要なデータ型（IDはFirestore生成のため除外）
+ */
+export type CreateHouseholdDTO = Omit<Household, 'id'>;
+export type CreateHouseholdItemDTO = Omit<HouseholdItem, 'id'>;

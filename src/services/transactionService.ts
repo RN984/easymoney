@@ -1,90 +1,137 @@
-import { getDBConnection } from '../database/db';
-import { TransactionJoinResult } from '../index';
+// src/services/transactionService.ts
+import {
+  addDoc,
+  collection,
+  DocumentData,
+  FirestoreDataConverter,
+  getDocs,
+  QueryDocumentSnapshot,
+  SnapshotOptions,
+  Timestamp
+} from 'firebase/firestore';
+import { db } from '../database/db';
+import { CreateHouseholdDTO, CreateHouseholdItemDTO, Household, HouseholdItem } from '../index';
 
-// 簡易的ながら衝突しにくいID生成 (タイムスタンプ + ランダムサフィックス)
-const generateId = (prefix: string): string => {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${prefix}-${timestamp}-${random}`.toUpperCase();
+/**
+ * Firestore Data Converter
+ * FirestoreのTimestampをJavaScriptのDateに変換し、その逆も行うコンバータ
+ */
+const householdConverter: FirestoreDataConverter<Household> = {
+  toFirestore(data: Household): DocumentData {
+    // IDはFirestoreが生成するため保存データには含めない（または無視する）
+    // 下記フィールドのみを書き込む
+    return {
+      categoryId: data.categoryId,
+      transactionName: data.transactionName || null, // undefined対策
+      memo: data.memo || null,
+      createdAt: Timestamp.fromDate(data.createdAt)
+    };
+  },
+  fromFirestore(snapshot: QueryDocumentSnapshot, options: SnapshotOptions): Household {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      categoryId: data.categoryId,
+      transactionName: data.transactionName,
+      memo: data.memo,
+      createdAt: data.createdAt?.toDate() || new Date(),
+    } as Household;
+  }
 };
 
-const getNowISO = (): string => new Date().toISOString();
-
-export const transactionService = {
-  /**
-   * 1. 親(Household)ヘッダーの新規作成
-   * @param categoryId カテゴリID
-   * @returns 生成されたtransactionId
-   */
-  createHeader: async (categoryId: string): Promise<string> => {
-    const db = await getDBConnection();
-    const newId = generateId('H');
-    const now = getNowISO();
-    const defaultName = '新規入力'; // デフォルト名称
-
-    try {
-      // transaction_name カラムに注意
-      await db.runAsync(
-        'INSERT INTO T_Household (id, categoryId, transaction_name, createdAt) VALUES (?, ?, ?, ?)',
-        newId, categoryId, defaultName, now
-      );
-      console.log(`[DB] Created Header: ${newId}`);
-      return newId;
-    } catch (error) {
-      console.error('[DB] createHeader Error', error);
-      throw error;
-    }
+const itemConverter: FirestoreDataConverter<HouseholdItem> = {
+  toFirestore(data: HouseholdItem): DocumentData {
+    return {
+      transactionId: data.transactionId,
+      categoryId: data.categoryId,
+      item: data.item || null,
+      amount: data.amount,
+      memo: data.memo || null,
+      createdAt: Timestamp.fromDate(data.createdAt)
+    };
   },
+  fromFirestore(snapshot: QueryDocumentSnapshot, options: SnapshotOptions): HouseholdItem {
+    const data = snapshot.data(options);
+    return {
+      id: snapshot.id,
+      transactionId: data.transactionId,
+      categoryId: data.categoryId,
+      item: data.item,
+      amount: data.amount,
+      memo: data.memo,
+      createdAt: data.createdAt?.toDate() || new Date(),
+    } as HouseholdItem;
+  }
+};
 
-  /**
-   * 2. 子(HouseholdItem)アイテムの追加
-   * @param transactionId 親のID (Household.id)
-   * @param categoryId カテゴリID
-   * @param amount 金額
-   */
-  addItem: async (transactionId: string, categoryId: string, amount: number): Promise<void> => {
-    const db = await getDBConnection();
-    const newItemId = generateId('I');
+// ==========================================
+// Service Methods
+// ==========================================
 
-    try {
-      await db.runAsync(
-        'INSERT INTO T_HouseholdItem (id, transactionId, categoryId, amount) VALUES (?, ?, ?, ?)',
-        newItemId, transactionId, categoryId, amount
-      );
-      console.log(`[DB] Added Item: ${amount} to Header: ${transactionId}`);
-    } catch (error) {
-      console.error('[DB] addItem Error', error);
-      throw error;
-    }
-  },
+/**
+ * 親ドキュメント（Household）を作成する
+ * @param data Household作成用データ
+ * @returns 作成されたHouseholdオブジェクト（ID付き）
+ */
+export const createHeader = async (data: CreateHouseholdDTO): Promise<Household> => {
+  try {
+    // addDocはGenerics<T>に対しT型の引数を求めるが、IDは自動生成されるため
+    // DTOをHouseholdとしてキャストして渡す（toFirestoreでIDは使われないため安全）
+    const docRef = await addDoc(
+      collection(db, 'households').withConverter(householdConverter), 
+      data as Household
+    );
+    
+    return {
+      ...data,
+      id: docRef.id,
+    };
+  } catch (error) {
+    console.error('Error creating household header:', error);
+    throw new Error('家計簿データの作成に失敗しました。');
+  }
+};
 
-  /**
-   * 3. 全データ取得 (デバッグ用)
-   * JOINを使用して親子関係を含めて取得
-   */
-  getAllTransactions: async (): Promise<TransactionJoinResult[]> => {
-    const db = await getDBConnection();
-    try {
-      // 戻り値の型を明示 (any禁止)
-      const results = await db.getAllAsync<TransactionJoinResult>(
-        `SELECT 
-          h.id as headerId, 
-          h.categoryId as headerCategory, 
-          h.transaction_name as transactionName,
-          h.createdAt,
-          i.id as itemId,
-          i.amount,
-          i.categoryId as itemCategory
-         FROM T_Household h
-         LEFT JOIN T_HouseholdItem i ON h.id = i.transactionId
-         ORDER BY h.createdAt DESC`
-      );
-      
-      console.log(`[DB] Fetched ${results.length} rows`);
-      return results;
-    } catch (error) {
-      console.error('[DB] getAllTransactions Error', error);
-      throw error;
-    }
-  },
+/**
+ * 子ドキュメント（HouseholdItem）を追加する
+ * 構造: households/{householdId}/items/{itemId}
+ * @param parentId 親HouseholdのID
+ * @param data Item作成用データ
+ */
+export const addItem = async (parentId: string, data: Omit<CreateHouseholdItemDTO, 'transactionId'>): Promise<HouseholdItem> => {
+  try {
+    const itemData: CreateHouseholdItemDTO = {
+      ...data,
+      transactionId: parentId
+    };
+
+    const subCollectionRef = collection(db, 'households', parentId, 'items').withConverter(itemConverter);
+    
+    const docRef = await addDoc(subCollectionRef, itemData as HouseholdItem);
+
+    return {
+      ...itemData,
+      id: docRef.id,
+    };
+  } catch (error) {
+    console.error(`Error adding item to household ${parentId}:`, error);
+    throw new Error('明細の追加に失敗しました。');
+  }
+};
+
+/**
+ * 全てのHousehold（親）を取得する
+ */
+export const getAllTransactions = async (): Promise<Household[]> => {
+  try {
+    const querySnapshot = await getDocs(
+      collection(db, 'households').withConverter(householdConverter)
+    );
+    
+    // Converterが正しく型付けされたため、doc.data() は Household を返す
+    return querySnapshot.docs.map(doc => doc.data());
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    throw new Error('データ取得に失敗しました。');
+  }
 };
