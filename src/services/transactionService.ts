@@ -18,11 +18,14 @@ import { CreateHouseholdDTO, CreateHouseholdItemDTO, Household, HouseholdItem } 
  */
 const householdConverter: FirestoreDataConverter<Household> = {
   toFirestore(data: Household): DocumentData {
-    // IDはFirestoreが生成するため保存データには含めない（または無視する）
-    // 下記フィールドのみを書き込む
     return {
       categoryId: data.categoryId,
-      transactionName: data.transactionName || null, // undefined対策
+      transactionName: data.transactionName || null,
+      
+      // ▼▼▼ 追加: これがないと金額が保存されません！ ▼▼▼
+      totalAmount: data.totalAmount, 
+      // ▲▲▲ 追加終わり ▲▲▲
+
       memo: data.memo || null,
       createdAt: Timestamp.fromDate(data.createdAt)
     };
@@ -33,6 +36,11 @@ const householdConverter: FirestoreDataConverter<Household> = {
       id: snapshot.id,
       categoryId: data.categoryId,
       transactionName: data.transactionName,
+      
+      // ▼▼▼ 追加: 読み込み時も取得 ▼▼▼
+      totalAmount: data.totalAmount || 0,
+      // ▲▲▲ 追加終わり ▲▲▲
+
       memo: data.memo,
       createdAt: data.createdAt?.toDate() || new Date(),
     } as Household;
