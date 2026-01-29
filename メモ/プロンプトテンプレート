@@ -7,7 +7,7 @@ src
  ├── database (DB初期化)
  │    └── db.ts             // SQLiteの接続・テーブル作成初期化
  ├── components (共通UI)
- │    ├── Button.tsx
+ │    ├── PrimaryButton.tsx
  │    └── HamburgerMenu.tsx // 左上のナビゲーション用
  ├── services (データアクセス層: DB操作の責務)
  │    ├── masterService.ts  // カテゴリ、コインのマスタ取得
@@ -15,23 +15,23 @@ src
  ├── hooks (全体共通のロジック)
  │    └── useNavigation.ts
  └── screens
-      ├── InputScreen (画面1: 入力)
+      ├── MoneyInput (画面1: 入力)
       │    ├── index.tsx         // 画面全体のレイアウト
       │    ├── components
-      │    │    ├── ProgressBar.tsx  // (1.1) 予算進捗バー
-      │    │    ├── RadialMenu.tsx   // (1.2) カテゴリ選択メニュー
+      │    │    ├── SegmentedProgressBar.tsx  // (1.1) 予算進捗バー
+      │    │    ├── RadialCategoryMenu.tsx   // (1.2) カテゴリ選択メニュー
       │    │    └── CoinList.tsx     // (1.3) コイン一覧
       │    └── hooks
-      │         └── useCoinInput.ts  // ★重要: 3秒ルールのロジック
-      ├── HistoryScreen (画面2: 履歴)
+      │         └── useMoneyInput.ts  // ★重要: 3秒ルールのロジック
+      ├── MoneyHistory (画面2: 履歴)
       │    ├── index.tsx         // 画面全体のレイアウト
       │    ├── components
       │    │    ├── MonthlyChart.tsx    // (2.2) 月次棒グラフ
-      │    │    ├── TransactionList.tsx // (2.3) 親(Household)リスト
-      │    │    └── TransactionItem.tsx // (2.3) 子(HouseholdItem)詳細
+      │    │    └── TransactionList.tsx // (2.3) 親(Household)リスト
+      │    │    
       │    └── hooks
       │         └── useHistoryData.ts   // グラフ・リスト用データ取得
-      └── SettingsScreen ...
+      └── Settings ...
 
 ## ファイル間のやり取りと役割
 各要件を実現するために、どのファイルが何を担当し、どう連携するかを解説します。
