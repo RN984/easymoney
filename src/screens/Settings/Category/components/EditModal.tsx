@@ -28,15 +28,18 @@ interface Props {
 export default function EditModal({ visible, targetCategory, onSave, onClose }: Props) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#CCCCCC');
+  const [icon, setIcon] = useState('📁');
 
   useEffect(() => {
     if (visible) {
       if (targetCategory) {
         setName(targetCategory.name);
         setColor(targetCategory.color);
+        setIcon(targetCategory.icon);
       } else {
         setName('');
         setColor(PRESET_COLORS[0]);
+        setIcon('📁');
       }
     }
   }, [visible, targetCategory]);
@@ -55,6 +58,7 @@ export default function EditModal({ visible, targetCategory, onSave, onClose }: 
       id: targetCategory ? targetCategory.id : `cat_${Date.now()}`,
       name: name.trim(),
       color,
+      icon,
     });
   };
 

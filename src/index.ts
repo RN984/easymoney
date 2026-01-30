@@ -1,12 +1,26 @@
 // src/index.ts
 
 // ==========================================
+// 共通型定義
+// ==========================================
+
+/**
+ * 位置情報データ
+ */
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  address?: string; // 逆ジオコーディング等で取得できた場合の住所（任意）
+}
+
+// ==========================================
 // M_カテゴリ (Master Table)
 // ==========================================
 export interface Category {
   id: string; 
   name: string; 
   color: string;
+  icon: string;
 }
 
 // ==========================================
@@ -28,6 +42,7 @@ export interface Household {
   transactionName?: string; 
   totalAmount: number;    // 合計金額
   memo?: string;
+  location?: LocationData; // 位置情報 (Option)
   createdAt: Date;
 }
 
@@ -49,3 +64,8 @@ export interface HouseholdItem {
  */
 export type CreateHouseholdDTO = Omit<Household, 'id'>;
 export type CreateHouseholdItemDTO = Omit<HouseholdItem, 'id'>;
+
+/**
+ * 更新時に必要なデータ型 (Partial)
+ */
+export type UpdateHouseholdDTO = Partial<Omit<Household, 'id' | 'createdAt'>>;

@@ -2,6 +2,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   DocumentData,
   FirestoreDataConverter,
@@ -13,10 +14,17 @@ import {
   runTransaction,
   SnapshotOptions,
   Timestamp,
+  updateDoc,
   where
 } from 'firebase/firestore';
 import { db } from '../database/db';
-import { CreateHouseholdDTO, CreateHouseholdItemDTO, Household, HouseholdItem } from '../index';
+import {
+  CreateHouseholdDTO,
+  CreateHouseholdItemDTO,
+  Household,
+  HouseholdItem,
+  UpdateHouseholdDTO
+} from '../index';
 
 // ==========================================
 // Converters
@@ -28,6 +36,7 @@ const householdConverter: FirestoreDataConverter<Household> = {
       transactionName: data.transactionName || null,
       totalAmount: data.totalAmount, 
       memo: data.memo || null,
+      location: data.location || null, // 位置情報を保存
       createdAt: Timestamp.fromDate(data.createdAt)
     };
   },
@@ -39,6 +48,7 @@ const householdConverter: FirestoreDataConverter<Household> = {
       transactionName: data.transactionName,
       totalAmount: data.totalAmount || 0,
       memo: data.memo,
+      location: data.location || undefined, // 位置情報を復元
       createdAt: data.createdAt?.toDate() || new Date(),
     } as Household;
   }
@@ -75,6 +85,7 @@ const itemConverter: FirestoreDataConverter<HouseholdItem> = {
 
 /**
  * 新規の親家計簿データ(Household)を作成します。
+ * (Location情報が含まれている場合はFirestoreに保存されます)
  */
 export const createHousehold = async (data: CreateHouseholdDTO): Promise<Household> => {
   try {
@@ -82,7 +93,6 @@ export const createHousehold = async (data: CreateHouseholdDTO): Promise<Househo
       collection(db, 'households').withConverter(householdConverter), 
       data as Household
     );
-    // ID付きで返す
     return { ...data, id: docRef.id };
   } catch (error) {
     console.error('Error creating household header:', error);
@@ -91,16 +101,47 @@ export const createHousehold = async (data: CreateHouseholdDTO): Promise<Househo
 };
 
 /**
+ * 既存の親家計簿データを更新します。
+ * (金額の変更は addItemToHousehold 経由で行うことが多いため、主にメタデータの修正用)
+ */
+export const updateHousehold = async (id: string, data: UpdateHouseholdDTO): Promise<void> => {
+  try {
+    const docRef = doc(db, 'households', id).withConverter(householdConverter);
+    // Firestore の updateDoc は Partial<DocumentData> を受け取るため、型安全に更新可能
+    // ただし converter を通す場合、updateDoc の挙動に注意が必要ですが、
+    // ここでは単純なフィールド更新として扱います。
+    await updateDoc(docRef, data as any); 
+  } catch (error) {
+    console.error(`Error updating household ${id}:`, error);
+    throw new Error('データの更新に失敗しました。');
+  }
+};
+
+/**
+ * 家計簿データを削除します。
+ * 注意: サブコレクション(items)はクライアントSDKの deleteDoc では自動削除されません。
+ * 厳密なクリーンアップが必要な場合は Cloud Functions を推奨しますが、
+ * 今回のスコープでは親ドキュメントの削除のみ実装します。
+ */
+export const deleteHousehold = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, 'households', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error(`Error deleting household ${id}:`, error);
+    throw new Error('データの削除に失敗しました。');
+  }
+};
+
+/**
  * 既存の親家計簿に明細を追加し、親の合計金額をアトミックに更新します。
  */
 export const addItemToHousehold = async (parentId: string, data: Omit<CreateHouseholdItemDTO, 'transactionId'>): Promise<HouseholdItem> => {
   try {
-    // Transactionを実行
     return await runTransaction(db, async (transaction) => {
-      // 1. 親ドキュメントとサブコレクションの参照準備
       const parentRef = doc(db, 'households', parentId).withConverter(householdConverter);
       const itemsCollectionRef = collection(db, 'households', parentId, 'items').withConverter(itemConverter);
-      const newItemRef = doc(itemsCollectionRef); // IDを自動生成
+      const newItemRef = doc(itemsCollectionRef);
 
       const newItem: HouseholdItem = {
         ...data,
@@ -108,11 +149,8 @@ export const addItemToHousehold = async (parentId: string, data: Omit<CreateHous
         transactionId: parentId,
       };
 
-      // 2. 書き込み操作
-      // 明細の追加
       transaction.set(newItemRef, newItem);
 
-      // 親の合計金額をインクリメント更新 (Read-Modify-WriteではなくAtomic Incrementを使用)
       transaction.update(parentRef, {
         totalAmount: increment(data.amount)
       });
