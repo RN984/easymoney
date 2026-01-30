@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { DEFAULT_CATEGORIES } from '../../../constants/categories';
 import { CoinValue, CreateHouseholdDTO, CreateHouseholdItemDTO } from '../../index';
 import { addItem, createHeader } from '../../services/transactionService';
 import { CoinList } from './components/CoinList';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
 
-export default function MoneyInputScreen() {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_food');
+export default function MoneyInput() {
+  // 初期値をカテゴリ配列の最初のIDなどにすると安全です
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(DEFAULT_CATEGORIES[0].id);
   const [isSaving, setIsSaving] = useState(false);
 
-  /**
-   * フェーズ2: 単純保存ロジック
-   * コインをタップするたびに、新しいHousehold(親)とHouseholdItem(子)を作成する。
-   * (3秒ルールや親の合算ロジックはフェーズ3で実装)
-   */
   const handlePressCoin = async (value: CoinValue) => {
     if (isSaving) return;
     setIsSaving(true);
@@ -21,8 +18,6 @@ export default function MoneyInputScreen() {
     try {
       const now = new Date();
 
-      // 1. 親(Household)の作成
-      // 今回の入力額 = 合計額 として作成
       const newHeaderData: CreateHouseholdDTO = {
         categoryId: selectedCategoryId,
         totalAmount: value,
@@ -31,7 +26,6 @@ export default function MoneyInputScreen() {
       
       const createdHeader = await createHeader(newHeaderData);
 
-      // 2. 子(Item)の追加
       const newItemData: Omit<CreateHouseholdItemDTO, 'transactionId'> = {
         categoryId: selectedCategoryId,
         amount: value,
@@ -41,8 +35,7 @@ export default function MoneyInputScreen() {
       await addItem(createdHeader.id, newItemData);
 
       console.log(`Saved: ${value} yen to Household ID: ${createdHeader.id}`);
-      // 成功フィードバック（本番ではToastなどを使用推奨）
-      // Alert.alert('保存完了', `${value}円を保存しました`);
+      // フィードバックがあればここに記述
       
     } catch (error) {
       console.error(error);
@@ -59,7 +52,9 @@ export default function MoneyInputScreen() {
       </View>
 
       <View style={styles.categoryContainer}>
+        {/* ★修正箇所: categories プロパティを渡す */}
         <RadialCategoryMenu
+          categories={DEFAULT_CATEGORIES} 
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
@@ -81,21 +76,23 @@ export default function MoneyInputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EAE5C6', // Design System: Background (Main)
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#272D2D', // Design System: Border color
     alignItems: 'center',
+    backgroundColor: '#EAE5C6',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#272D2D', // Design System: Text
   },
   categoryContainer: {
-    paddingVertical: 8,
+    paddingVertical: 20, // レイアウト調整
+    alignItems: 'center',
   },
   coinContainer: {
     flex: 1,
@@ -103,7 +100,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(39, 45, 45, 0.5)', // Design Systemベースの半透明
     justifyContent: 'center',
     alignItems: 'center',
   },
