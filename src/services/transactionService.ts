@@ -7,10 +7,13 @@ import {
   FirestoreDataConverter,
   getDocs,
   increment,
+  orderBy,
+  query,
   QueryDocumentSnapshot,
   runTransaction,
   SnapshotOptions,
-  Timestamp
+  Timestamp,
+  where
 } from 'firebase/firestore';
 import { db } from '../database/db';
 import { CreateHouseholdDTO, CreateHouseholdItemDTO, Household, HouseholdItem } from '../index';
@@ -71,9 +74,9 @@ const itemConverter: FirestoreDataConverter<HouseholdItem> = {
 // ==========================================
 
 /**
- * 新規の親家計簿データ(Header)を作成します。
+ * 新規の親家計簿データ(Household)を作成します。
  */
-export const createHeader = async (data: CreateHouseholdDTO): Promise<Household> => {
+export const createHousehold = async (data: CreateHouseholdDTO): Promise<Household> => {
   try {
     const docRef = await addDoc(
       collection(db, 'households').withConverter(householdConverter), 
@@ -119,6 +122,29 @@ export const addItemToHousehold = async (parentId: string, data: Omit<CreateHous
   } catch (error) {
     console.error(`Error adding item to household ${parentId}:`, error);
     throw new Error('明細の追加と集計更新に失敗しました。');
+  }
+};
+
+/**
+ * 指定月の家計簿データ一覧を取得します。
+ */
+export const getMonthlyTransactions = async (date: Date): Promise<Household[]> => {
+  try {
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const q = query(
+      collection(db, 'households').withConverter(householdConverter),
+      where('createdAt', '>=', Timestamp.fromDate(startOfMonth)),
+      where('createdAt', '<=', Timestamp.fromDate(endOfMonth)),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data());
+  } catch (error) {
+    console.error('Error fetching monthly transactions:', error);
+    throw new Error('月次データの取得に失敗しました。');
   }
 };
 

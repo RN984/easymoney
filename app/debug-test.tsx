@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CreateHouseholdDTO } from '../src/index';
-import { addItemToHousehold, createHeader } from '../src/services/transactionService';
+// 名前変更
+import { addItemToHousehold, createHousehold } from '../src/services/transactionService';
 
-// ==========================================
-// Design System Colors
-// ==========================================
 const COLORS = {
   background: '#EAE5C6',
   text: '#272D2D',
@@ -23,19 +21,18 @@ export default function FirebaseTestScreen() {
     setLog('保存処理を開始します...');
 
     try {
-      // 1. 親データ (Household) の作成
       const headerData: CreateHouseholdDTO = {
         categoryId: 'cat_test_001',
-        totalAmount: 0, // ★初期値は0にして、明細追加時に加算されるか確認するのが良い
+        totalAmount: 0,
         transactionName: 'テスト買い物',
         memo: 'Firebase疎通テスト',
         createdAt: new Date(),
       };
       
-      const newHeader = await createHeader(headerData);
+      // 名前変更
+      const newHeader = await createHousehold(headerData);
       setLog(prev => prev + `\n✅ 親データ作成成功: ID=${newHeader.id}`);
 
-      // 2. 子データ (HouseholdItem) の追加
       await addItemToHousehold(newHeader.id, {
         categoryId: 'cat_test_001',
         item: 'おにぎり',
@@ -44,15 +41,6 @@ export default function FirebaseTestScreen() {
         createdAt: new Date(),
       });
       setLog(prev => prev + `\n✅ 明細1 追加成功 & 合計更新`);
-
-      await addItemToHousehold(newHeader.id, {
-        categoryId: 'cat_test_001',
-        item: 'お茶',
-        amount: 1000,
-        memo: '明細2',
-        createdAt: new Date(),
-      });
-      setLog(prev => prev + `\n✅ 明細2 追加成功 & 合計更新`);
 
       Alert.alert('成功', 'Firebaseへの保存が完了しました！');
       
@@ -69,11 +57,9 @@ export default function FirebaseTestScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Firebase Connection Test</Text>
-        
         <View style={styles.logBox}>
           <Text style={styles.logText}>{log}</Text>
         </View>
-
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]} 
           onPress={handleTestSave}
