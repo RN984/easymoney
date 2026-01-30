@@ -20,13 +20,13 @@ const COINS: CoinValue[] = [10000, 5000, 1000, 500, 100, 50, 10];
 
 // 画像のパスをマッピング
 const COIN_IMAGES: Record<number, ImageSourcePropType> = {
-  10000: require('../../../../assets/images/money/10,000.webp'),
-  5000:  require('../../../../assets/images/money/5,000.webp'),
-  1000:  require('../../../../assets/images/money/1,000.webp'),
-  500:   require('../../../../assets/images/money/500.webp'),
-  100:   require('../../../../assets/images/money/100.webp'),
-  50:    require('../../../../assets/images/money/50.webp'),
-  10:    require('../../../../assets/images/money/10.webp'),
+  10000: require('../../../../../assets/images/money/10,000.webp'),
+  5000:  require('../../../../../assets/images/money/5,000.webp'),
+  1000:  require('../../../../../assets/images/money/1,000.webp'),
+  500:   require('../../../../../assets/images/money/500.webp'),
+  100:   require('../../../../../assets/images/money/100.webp'),
+  50:    require('../../../../../assets/images/money/50.webp'),
+  10:    require('../../../../../assets/images/money/10.webp'),
 };
 
 export const CoinList: React.FC<CoinListProps> = ({ onPressCoin }) => {

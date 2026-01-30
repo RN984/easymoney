@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 
 // ※ 音声ファイルは assets/sounds/coin.mp3 に配置されていると仮定します
 // 実際のファイルパスに合わせて require の引数を変更してください
-const COIN_SOUND_SOURCE = require('../../../../../assets/sounds/coin.m4a'); 
+const COIN_SOUND_SOURCE = require('../../../../assets/sounds/coin.m4a');
 
 export const useSound = () => {
   const soundRef = useRef<Audio.Sound | null>(null);
