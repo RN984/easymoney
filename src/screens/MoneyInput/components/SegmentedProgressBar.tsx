@@ -1,70 +1,46 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Category, Household } from '../../../index';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { Colors } from '../../../../constants/theme';
 
-interface Props {
-  categories: Category[]; 
-  transactions: Household[]; // [Ref] Household (親データ)
+interface SegmentedProgressBarProps {
+  currentTotal: number;   // 今月の確定済み合計金額
+  pendingAmount: number;  // 現在入力中の金額
+  budget?: number;        // 月次予算 (デフォルト10万)
 }
 
-export const SegmentedProgressBar: React.FC<Props> = ({ categories, transactions }) => {
-  
-  // =================================================================
-  // 集計ロジック: カテゴリごとの totalAmount を合計する
-  // =================================================================
-  const chartData = useMemo(() => {
-    // 全体の合計金額
-    const total = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
+const DEFAULT_BUDGET = 100000;
 
-    return categories.map(cat => {
-      // カテゴリごとの合計を計算
-      const catTotal = transactions
-        .filter(t => t.categoryId === cat.id)
-        .reduce((sum, t) => sum + t.totalAmount, 0);
-      
-      // 割合を計算 (0除算回避)
-      const percentage = total > 0 ? (catTotal / total) : 0;
+export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({ 
+  currentTotal, 
+  pendingAmount, 
+  budget = DEFAULT_BUDGET 
+}) => {
+  // 割合計算 (最大100%)
+  const usedRatio = Math.min(currentTotal / budget, 1);
+  const pendingRatio = Math.min((currentTotal + pendingAmount) / budget, 1) - usedRatio;
 
-      return {
-        ...cat,
-        percentage,
-        amount: catTotal
-      };
-    });
-  }, [categories, transactions]);
+  const usedStyle = useAnimatedStyle(() => ({
+    width: withTiming(`${usedRatio * 100}%`, { duration: 500 }),
+  }));
+
+  const pendingStyle = useAnimatedStyle(() => ({
+    width: withTiming(`${pendingRatio * 100}%`, { duration: 300 }),
+  }));
 
   return (
     <View style={styles.container}>
-      {/* バー部分 */}
-      <View style={styles.barContainer}>
-        {chartData.map((item) => (
-          item.percentage > 0 && (
-            <View
-              key={item.id}
-              style={[
-                styles.segment, 
-                { flex: item.percentage, backgroundColor: item.color }
-              ]}
-            />
-          )
-        ))}
-        {/* データがない場合のグレー表示 */}
-        {transactions.length === 0 && <View style={[styles.segment, { flex: 1, backgroundColor: '#eee' }]} />}
+      <View style={styles.header}>
+        <Text style={styles.label}>今月の予算消化率</Text>
+        <Text style={styles.value}>
+          ¥{(currentTotal + pendingAmount).toLocaleString()} / ¥{budget.toLocaleString()}
+        </Text>
       </View>
-      
-      {/* 凡例 (Legend) */}
-      <View style={styles.legendContainer}>
-        <View style={styles.legendLeft}>
-           <Text style={styles.totalText}>Total: ¥{transactions.reduce((acc, cur) => acc + cur.totalAmount, 0).toLocaleString()}</Text>
-        </View>
-        <View style={styles.legendRight}>
-            {/* 上位3カテゴリのみ表示するなどの工夫が可能だが今回は簡易表示 */}
-            {chartData.filter(d => d.percentage > 0.1).map((item) => (
-            <Text key={item.id} style={styles.legendText}>
-                {item.name}: {Math.round(item.percentage * 100)}%
-            </Text>
-            ))}
-        </View>
+      <View style={styles.barBackground}>
+        {/* 確定済み部分 */}
+        <Animated.View style={[styles.barFill, styles.barUsed, usedStyle]} />
+        {/* 入力中部分 */}
+        <Animated.View style={[styles.barFill, styles.barPending, pendingStyle]} />
       </View>
     </View>
   );
@@ -72,41 +48,38 @@ export const SegmentedProgressBar: React.FC<Props> = ({ categories, transactions
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    height: 70,
+    paddingVertical: 8,
+    width: '100%',
   },
-  barContainer: {
-    flexDirection: 'row', 
-    height: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#eee',
-    marginBottom: 8,
-  },
-  segment: {
-    height: '100%',
-  },
-  legendContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 6,
   },
-  legendLeft: {
-    flex: 1,
-  },
-  legendRight: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  totalText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  legendText: {
+  label: {
     fontSize: 12,
-    color: '#666',
-  }
+    color: Colors.light.text,
+  },
+  value: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: Colors.light.text,
+  },
+  barBackground: {
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    flexDirection: 'row',
+  },
+  barFill: {
+    height: '100%',
+  },
+  barUsed: {
+    backgroundColor: Colors.light.primary,
+  },
+  barPending: {
+    backgroundColor: Colors.light.secondary, // 入力中は少し違う色あるいはアクセントカラー
+  },
 });

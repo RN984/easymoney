@@ -1,57 +1,83 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_CATEGORIES } from '../../../constants/categories';
-import { Palette } from '../../../constants/theme';
-import { HamburgerMenu } from '../../components/HumburgerMenu';
+import { Pressable, SafeAreaView, StyleSheet, View } from 'react-native';
+import { Colors } from '../../../constants/theme';
+import { HamburgerMenu } from '../../components/HamburgerMenu'; // 修正したコンポーネント
 import { CoinList } from './components/Coin/CoinList';
-import { FloatingCoin } from './components/Coin/FloatingCoin';
+import { FloatingCoin } from './components/Coin/FloatingCoin'; // 既存にあると仮定
+import { FeedbackToast } from './components/FeedbackToast';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
 import { SegmentedProgressBar } from './components/SegmentedProgressBar';
 import { useMoneyInput } from './hooks/useMoneyInput';
 
-export default function MoneyInput() {
+export default function MoneyInputScreen() {
+  const router = useRouter();
   const {
+    amount,
+    categories,
     selectedCategoryId,
-    setSelectedCategoryId,
-    isSaving,
+    monthlyTotal,
+    toast,
     floatingCoins,
-    monthlyTransactions, // 追加
-    handlePressCoin,
+    handleSelectCategory,
+    handlePressCoin, // 修正
     removeFloatingCoin,
-  } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
+    handleReset,
+    handleSubmit
+  } = useMoneyInput();
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* カスタムヘッダー */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <HamburgerMenu />
-        </View>
-        <Text style={styles.title}>EasyMoney</Text>
-        <View style={styles.headerRight} />
+        <HamburgerMenu />
+        <Pressable 
+          style={styles.historyButton} 
+          onPress={() => router.push('/history')}
+        >
+          <Ionicons name="stats-chart" size={24} color={Colors.light.primary} />
+        </Pressable>
       </View>
 
-      {/* 予算進捗バー (ヘッダー直下に配置) */}
-      <SegmentedProgressBar 
-        categories={DEFAULT_CATEGORIES}
-        transactions={monthlyTransactions}
-      />
-
-      {/* カテゴリ選択 */}
-      <View style={styles.categoryContainer}>
-        <RadialCategoryMenu
-          categories={DEFAULT_CATEGORIES} 
-          selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <SegmentedProgressBar 
+          currentTotal={monthlyTotal}
+          pendingAmount={amount}
+          budget={100000}
         />
       </View>
 
-      {/* コイン入力エリア */}
-      <View style={styles.coinContainer}>
-        <CoinList onPressCoin={handlePressCoin} />
+      <View style={styles.mainContent}>
+        {/* Category Menu: Props修正 */}
+        <View style={styles.categoryContainer}>
+          <RadialCategoryMenu
+            categories={categories}
+            selectedCategoryId={selectedCategoryId} // 修正: selectedId -> selectedCategoryId
+            onSelectCategory={handleSelectCategory} // 修正: onSelect -> onSelectCategory
+          />
+        </View>
       </View>
 
-      {/* アニメーションレイヤー */}
+      {/* Coin List: Props修正 */}
+      <View style={styles.footer}>
+        <CoinList onPressCoin={handlePressCoin} /> 
+        
+        {/* Submit Actions */}
+        {amount > 0 && (
+          <View style={styles.actionButtons}>
+            <Pressable style={styles.resetButton} onPress={handleReset}>
+              <Ionicons name="refresh" size={24} color="#666" />
+            </Pressable>
+            <Pressable style={styles.submitButton} onPress={handleSubmit}>
+              <Ionicons name="checkmark" size={32} color="#fff" />
+            </Pressable>
+          </View>
+        )}
+      </View>
+
+      {/* Floating Coins Layer */}
       {floatingCoins.map((coin) => (
         <FloatingCoin
           key={coin.id}
@@ -63,11 +89,12 @@ export default function MoneyInput() {
         />
       ))}
 
-      {isSaving && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Palette.white} />
-        </View>
-      )}
+      {/* Feedback Toast */}
+      <FeedbackToast 
+        visible={toast.visible} 
+        message={toast.message} 
+        categoryColor={toast.color} 
+      />
     </SafeAreaView>
   );
 }
@@ -75,48 +102,63 @@ export default function MoneyInput() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: Colors.light.background,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    backgroundColor: Palette.background,
-    zIndex: 10,
-  },
-  headerLeft: {
-    width: 40,
-    alignItems: 'flex-start',
-  },
-  headerRight: {
-    width: 40,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Palette.text,
-    textAlign: 'center',
-    flex: 1,
-  },
-  categoryContainer: {
-    paddingVertical: 10,
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    zIndex: 20,
+  },
+  historyButton: {
+    padding: 8,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    elevation: 2,
+  },
+  progressContainer: {
+    marginTop: 8,
     zIndex: 5,
   },
-  coinContainer: {
+  mainContent: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 1,
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  categoryContainer: {
+    // 中央配置
+  },
+  footer: {
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  actionButtons: {
+    position: 'absolute',
+    right: 20,
+    bottom: 140, 
+    flexDirection: 'column',
+    gap: 16,
+  },
+  resetButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999,
+    elevation: 4,
+  },
+  submitButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.light.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
   },
 });

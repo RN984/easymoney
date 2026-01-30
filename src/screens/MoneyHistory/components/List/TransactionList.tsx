@@ -1,10 +1,10 @@
 // src/screens/MoneyHistory/components/TransactionList.tsx
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { Household } from '../../../index';
+import { Household } from '../../../../index';
 // インポート元を修正 (src/constantsを想定)
-import { DEFAULT_CATEGORIES as CATEGORIES } from '../../../../constants/categories';
-import { Colors } from '../../../../constants/theme';
+import { DEFAULT_CATEGORIES as CATEGORIES } from '../../../../../constants/categories';
+import { Colors } from '../../../../../constants/theme';
 
 interface TransactionListProps {
   transactions: Household[];

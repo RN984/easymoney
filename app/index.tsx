@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { DEFAULT_CATEGORIES } from '../constants/categories'; // パス調整
 import { Palette } from '../constants/theme'; // パス調整
-import { HamburgerMenu } from '../src/components/HumburgerMenu';
+import { HamburgerMenu } from '../src/components/HamburgerMenu';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';

@@ -2,9 +2,9 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../../constants/theme';
-import { HamburgerMenu } from '../../components/HumburgerMenu';
+import { HamburgerMenu } from '../../components/HamburgerMenu';
+import { TransactionList } from './components/List/TransactionList';
 import { MonthlyChart } from './components/MonthlyChart';
-import { TransactionList } from './components/TransactionList';
 import { useHistoryData } from './hooks/useHistoryData';
 
 export default function MoneyHistoryScreen() {
