@@ -1,32 +1,71 @@
-// app/index.tsx
-import { useRouter } from 'expo-router';
+// src/screens/MoneyInput/index.tsx
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Palette } from '../constants/theme';
-import MoneyInputScreen from '../src/screens/MoneyInput';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { DEFAULT_CATEGORIES } from '../constants/categories';
+import { Palette } from '../constants/theme'; // テーマ定数をインポート
+// ファイル名が HumburgerMenu.tsx となっているため、そのままインポートします
+import { HamburgerMenu } from '../src/components/HumburgerMenu';
+import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
+import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
+import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
+import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
 
-export default function Index() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+export default function MoneyInput() {
+  const {
+    selectedCategoryId,
+    setSelectedCategoryId,
+    isSaving,
+    floatingCoins,
+    handlePressCoin,
+    removeFloatingCoin,
+  } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
 
   return (
-    <View style={styles.container}>
-      {/* メイン機能の表示 */}
-      <View style={styles.mainContent}>
-        <MoneyInputScreen />
+    <SafeAreaView style={styles.container}>
+      {/* カスタムヘッダー */}
+      <View style={styles.header}>
+        {/* 左: メニューボタン */}
+        <View style={styles.headerLeft}>
+          <HamburgerMenu />
+        </View>
+
+        {/* 中央: タイトル */}
+        <Text style={styles.title}>EasyMoney Input</Text>
+
+        {/* 右: バランス調整用のダミーView（タイトルを中央寄せするため） */}
+        <View style={styles.headerRight} />
       </View>
 
-      {/* 開発用: デバッグ画面へのフローティングボタン 
-        本番リリース時には削除するか、フラグで制御してください
-      */}
-      <TouchableOpacity
-        style={[styles.debugButton, { bottom: insets.bottom + 20 }]}
-        onPress={() => router.push('/debug-test')}
-      >
-        <Text style={styles.debugButtonText}>🛠 Debug</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.categoryContainer}>
+        <RadialCategoryMenu
+          categories={DEFAULT_CATEGORIES} 
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
+        />
+      </View>
+
+      <View style={styles.coinContainer}>
+        <CoinList onPressCoin={handlePressCoin} />
+      </View>
+
+      {/* アニメーションレイヤー: コイン画像をタップ位置に表示 */}
+      {floatingCoins.map((coin) => (
+        <FloatingCoin
+          key={coin.id}
+          id={coin.id}
+          value={coin.value}
+          x={coin.x}
+          y={coin.y}
+          onAnimationComplete={removeFloatingCoin}
+        />
+      ))}
+
+      {isSaving && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Palette.white} />
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -35,26 +74,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Palette.background,
   },
-  mainContent: {
-    flex: 1,
-  },
-  debugButton: {
-    position: 'absolute',
-    right: 20,
-    backgroundColor: Palette.text,
-    paddingVertical: 8,
+  header: {
+    flexDirection: 'row', // 横並びにする
+    alignItems: 'center',
+    justifyContent: 'space-between', // 両端と中央に配置
     paddingHorizontal: 16,
-    borderRadius: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 100, // 最前面に表示
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.text,
+    backgroundColor: Palette.background,
+    zIndex: 10,
   },
-  debugButtonText: {
-    color: Palette.background, // テキスト色は背景色と反転
+  headerLeft: {
+    width: 40, // 左右の幅を固定してタイトルを中央に保つ
+    alignItems: 'flex-start',
+  },
+  headerRight: {
+    width: 40, // 左側と同じ幅のダミー
+  },
+  title: {
+    fontSize: 20,
     fontWeight: 'bold',
-    fontSize: 12,
+    color: Palette.text,
+    textAlign: 'center',
+    flex: 1, // 残りのスペースを埋める
+  },
+  categoryContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    zIndex: 5,
+  },
+  coinContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)', // 背景を少し暗くする
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
 });
