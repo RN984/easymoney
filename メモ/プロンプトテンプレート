@@ -20,9 +20,12 @@ src
       │    ├── components
       │    │    ├── SegmentedProgressBar.tsx  // (1.1) 予算進捗バー
       │    │    ├── RadialCategoryMenu.tsx   // (1.2) カテゴリ選択メニュー
-      │    │    └── CoinList.tsx     // (1.3) コイン一覧
+      │    │    └── Coin
+      │    │         └── CoinList.tsx     // (1.3) コイン一覧
+      │    │         └── FloatingCoin.tsx // (1.4) フローティングコイン表示
       │    └── hooks
       │         └── useMoneyInput.ts  // ★重要: 3秒ルールのロジック
+      │         └── useSound.ts // 効果音再生用フック
       ├── MoneyHistory (画面2: 履歴)
       │    ├── index.tsx         // 画面全体のレイアウト
       │    ├── components

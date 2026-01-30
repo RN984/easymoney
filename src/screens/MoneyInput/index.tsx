@@ -1,49 +1,20 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { DEFAULT_CATEGORIES } from '../../../constants/categories';
-import { CoinValue, CreateHouseholdDTO, CreateHouseholdItemDTO } from '../../index';
-import { addItem, createHeader } from '../../services/transactionService';
-import { CoinList } from './components/CoinList';
+import { CoinList } from './components/Coin/CoinList';
+import { FloatingCoin } from './components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
+import { useMoneyInput } from './hooks/useMoneyInput';
 
 export default function MoneyInput() {
-  // 初期値をカテゴリ配列の最初のIDなどにすると安全です
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(DEFAULT_CATEGORIES[0].id);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handlePressCoin = async (value: CoinValue) => {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    try {
-      const now = new Date();
-
-      const newHeaderData: CreateHouseholdDTO = {
-        categoryId: selectedCategoryId,
-        totalAmount: value,
-        createdAt: now,
-      };
-      
-      const createdHeader = await createHeader(newHeaderData);
-
-      const newItemData: Omit<CreateHouseholdItemDTO, 'transactionId'> = {
-        categoryId: selectedCategoryId,
-        amount: value,
-        createdAt: now,
-      };
-
-      await addItem(createdHeader.id, newItemData);
-
-      console.log(`Saved: ${value} yen to Household ID: ${createdHeader.id}`);
-      // フィードバックがあればここに記述
-      
-    } catch (error) {
-      console.error(error);
-      Alert.alert('エラー', 'データの保存に失敗しました。');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const {
+    selectedCategoryId,
+    setSelectedCategoryId,
+    isSaving,
+    floatingCoins,
+    handlePressCoin,
+    removeFloatingCoin,
+  } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,7 +23,6 @@ export default function MoneyInput() {
       </View>
 
       <View style={styles.categoryContainer}>
-        {/* ★修正箇所: categories プロパティを渡す */}
         <RadialCategoryMenu
           categories={DEFAULT_CATEGORIES} 
           selectedCategoryId={selectedCategoryId}
@@ -63,6 +33,18 @@ export default function MoneyInput() {
       <View style={styles.coinContainer}>
         <CoinList onPressCoin={handlePressCoin} />
       </View>
+
+      {/* アニメーションレイヤー: コイン画像をタップ位置に表示 */}
+      {floatingCoins.map((coin) => (
+        <FloatingCoin
+          key={coin.id}
+          id={coin.id}
+          value={coin.value}
+          x={coin.x}
+          y={coin.y}
+          onAnimationComplete={removeFloatingCoin}
+        />
+      ))}
 
       {isSaving && (
         <View style={styles.loadingOverlay}>
@@ -76,32 +58,36 @@ export default function MoneyInput() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAE5C6', // Design System: Background (Main)
+    backgroundColor: '#EAE5C6',
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#272D2D', // Design System: Border color
+    borderBottomColor: '#272D2D',
     alignItems: 'center',
     backgroundColor: '#EAE5C6',
+    zIndex: 10,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#272D2D', // Design System: Text
+    color: '#272D2D',
   },
   categoryContainer: {
-    paddingVertical: 20, // レイアウト調整
+    paddingVertical: 20,
     alignItems: 'center',
+    zIndex: 5,
   },
   coinContainer: {
     flex: 1,
     justifyContent: 'center',
+    zIndex: 1,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(39, 45, 45, 0.5)', // Design Systemベースの半透明
+    backgroundColor: 'rgba(39, 45, 45, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 999,
   },
 });

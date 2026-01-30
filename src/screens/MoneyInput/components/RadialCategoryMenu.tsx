@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
-import { Category } from '../../../index'; // 適切なパスに合わせてください
+import { Category } from '../../../index';
 
 /**
  * Props定義
@@ -19,13 +19,15 @@ interface RadialCategoryMenuProps {
 const { width } = Dimensions.get('window');
 const CONTAINER_SIZE = width * 0.9;
 const DEFAULT_RADIUS = CONTAINER_SIZE / 2;
-const INNER_RADIUS_RATIO = 0.55; // ドーナツの穴の大きさ (0.0 ~ 1.0)
+
+// ★変更点1: 穴の比率を小さくしました (0.55 -> 0.3)
+const INNER_RADIUS_RATIO = 0.3; 
 
 // Design System Colors
 const COLORS = {
-  activeStroke: '#6179B5', // Primary Action (選択中の円弧)
+  // activeStroke: '#6179B5', // ← 個別の category.color を使うため削除/不使用
   inactiveFill: '#FFFFFF', // 未選択エリアの背景
-  activeFill: '#F4F4F4',   // 選択中エリアの背景（薄いグレー）
+  activeFill: '#F4F4F4',   // 選択中エリアの背景
   textActive: '#272D2D',   // 選択中のテキスト
   textInactive: '#999999', // 未選択のテキスト
   shadow: '#272D2D',
@@ -116,10 +118,10 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
       const startAngle = index * angleStep;
       const endAngle = (index + 1) * angleStep;
       
-      // テキスト配置用の角度（セクターの中央）
+      // テキスト配置用の角度
       const midAngle = startAngle + angleStep / 2;
-      // テキスト配置位置（内径と外径の中間より少し外側など調整可）
-      const labelRadius = innerRadius + (radius - innerRadius) * 0.5;
+      // テキスト配置位置
+      const labelRadius = innerRadius + (radius - innerRadius) * 0.55; 
       const labelPos = polarToCartesian(cx, cy, labelRadius, midAngle);
 
       const isSelected = selectedCategoryId === category.id;
@@ -131,7 +133,7 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
         labelPos,
         isSelected,
         path: createSectorPath(cx, cy, radius, innerRadius, startAngle, endAngle),
-        strokePath: createArcStrokePath(cx, cy, radius - 4, startAngle, endAngle), // 少し内側に描画
+        strokePath: createArcStrokePath(cx, cy, radius - 4, startAngle, endAngle),
       };
     });
   }, [categories, selectedCategoryId, radius, innerRadius, cx, cy, angleStep]);
@@ -165,23 +167,24 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
               strokeWidth="2"
             />
 
-            {/* 選択時の外周インジケーター（スクリーンショットの紫のライン） */}
+            {/* 選択時の外周インジケーター */}
             {sector.isSelected && (
               <Path
                 d={sector.strokePath}
                 fill="none"
-                stroke={COLORS.activeStroke}
+                // ★変更点2: カテゴリ固有の色を使用
+                stroke={sector.color} 
                 strokeWidth="6"
                 strokeLinecap="round"
               />
             )}
 
-            {/* カテゴリ名/アイコン */}
+            {/* カテゴリ名 */}
             <SvgText
               x={sector.labelPos.x}
-              y={sector.labelPos.y + 5} // 垂直方向の微調整
+              y={sector.labelPos.y}
               fill={sector.isSelected ? COLORS.textActive : COLORS.textInactive}
-              fontSize="13"
+              fontSize="14"
               fontWeight={sector.isSelected ? "bold" : "normal"}
               textAnchor="middle"
               alignmentBaseline="middle"
@@ -192,14 +195,14 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
         ))}
       </Svg>
 
-      {/* 中央の装飾（オプション: ドーナツの穴の中に何か表示する場合） */}
+      {/* 中央の装飾 */}
       <View style={[styles.centerContent, { 
-        width: innerRadius * 2 - 20, 
-        height: innerRadius * 2 - 20,
-        left: cx - (innerRadius - 10),
-        top: cy - (innerRadius - 10),
+        width: innerRadius * 2, 
+        height: innerRadius * 2,
+        left: cx - innerRadius,
+        top: cy - innerRadius,
       }]}>
-         {/* ここに合計金額やロゴなどを入れることも可能 */}
+         {/* 必要であればここに合計金額などを表示 */}
       </View>
     </View>
   );
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   },
   shadowCircle: {
     position: 'absolute',
-    backgroundColor: '#fff',
+    backgroundColor: '#EAE5C6',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -227,7 +230,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 999,
-    // 必要に応じて背景色を設定
-    // backgroundColor: '#fafafa',
   }
 });
