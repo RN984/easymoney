@@ -1,134 +1,101 @@
-// src/components/HumburgerMenu.tsx
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
-} from 'react-native';
-import { Colors, Palette } from '../../constants/theme';
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Palette } from '../../constants/theme';
 
-export const HamburgerMenu = () => {
+export const HamburgerMenu: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
 
-  const toggleMenu = () => setVisible(!visible);
-
-  const navigateTo = (path: '/history' | '/' | '/debug-test') => {
+  const handleNavigate = (route: string) => {
     setVisible(false);
-    router.push(path);
+    // expo-routerの型定義に合わせてキャスト
+    router.push(route as any);
   };
 
   return (
     <>
-      {/* メニューボタン */}
-      <TouchableOpacity 
-        style={styles.container} 
-        onPress={toggleMenu}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.icon}>≡</Text>
+      <TouchableOpacity onPress={() => setVisible(true)} style={styles.iconButton}>
+        {/* ハンバーガーアイコン (3本線) */}
+        <View style={styles.line} />
+        <View style={styles.line} />
+        <View style={styles.line} />
       </TouchableOpacity>
 
-      {/* メニューモーダル */}
       <Modal
         visible={visible}
         transparent
         animationType="fade"
-        onRequestClose={toggleMenu}
+        onRequestClose={() => setVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={toggleMenu}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.menuContent}>
-                <Text style={styles.menuHeader}>Menu</Text>
-                
-                <TouchableOpacity 
-                  style={styles.menuItem} 
-                  onPress={() => navigateTo('/')}
-                >
-                  <Text style={styles.menuText}>🏠 ホーム (入力)</Text>
-                </TouchableOpacity>
+        <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
+          <View style={styles.menuContainer}>
+            <Text style={styles.menuTitle}>Menu</Text>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate('/')}>
+              <Text style={styles.menuText}>🏠 ホーム (入力)</Text>
+            </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.menuItem} 
-                  onPress={() => navigateTo('/history')}
-                >
-                  <Text style={styles.menuText}>📊 履歴一覧</Text>
-                </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate('/history')}>
+              <Text style={styles.menuText}>📊 履歴・グラフ</Text>
+            </TouchableOpacity>
 
-                <View style={styles.divider} />
-
-                <TouchableOpacity 
-                  style={styles.menuItem} 
-                  onPress={() => navigateTo('/debug-test')}
-                >
-                  <Text style={styles.menuText}>🛠 接続テスト</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate('/settings')}>
+              <Text style={styles.menuText}>⚙️ 設定</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate('/debug-test')}>
+              <Text style={styles.menuText}>🔧 接続テスト</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
+        </Pressable>
       </Modal>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  iconButton: {
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    height: 40,
+    width: 40,
   },
-  icon: {
-    fontSize: 28,
-    color: Colors.light.primary,
-    fontWeight: 'bold',
+  line: {
+    width: 20,
+    height: 2,
+    backgroundColor: Palette.text,
+    marginVertical: 2,
   },
-  // モーダル用スタイル
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // 背景を半透明に
-    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  menuContent: {
-    backgroundColor: Palette.background,
-    width: '70%', // 画面の70%幅
+  menuContainer: {
+    width: '70%',
     height: '100%',
-    paddingTop: 60, // ステータスバー避け
-    paddingHorizontal: 20,
-    borderRightWidth: 1,
-    borderRightColor: Palette.text,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 0 },
+    backgroundColor: Palette.background,
+    padding: 20,
+    paddingTop: 50,
+    shadowColor: '#000',
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 5,
     elevation: 5,
   },
-  menuHeader: {
+  menuTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Palette.text,
     marginBottom: 30,
-    borderBottomWidth: 2,
-    borderBottomColor: Palette.secondary,
-    alignSelf: 'flex-start',
-    paddingBottom: 5,
+    color: Palette.text,
   },
   menuItem: {
     paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   menuText: {
     fontSize: 18,
     color: Palette.text,
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ccc',
-    marginVertical: 15,
   },
 });

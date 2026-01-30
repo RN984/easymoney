@@ -1,10 +1,12 @@
-// src/screens/MoneyInput/index.tsx
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { DEFAULT_CATEGORIES } from '../../../constants/categories';
+import { Palette } from '../../../constants/theme';
+import { HamburgerMenu } from '../../components/HumburgerMenu';
 import { CoinList } from './components/Coin/CoinList';
 import { FloatingCoin } from './components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
+import { SegmentedProgressBar } from './components/SegmentedProgressBar';
 import { useMoneyInput } from './hooks/useMoneyInput';
 
 export default function MoneyInput() {
@@ -13,16 +15,29 @@ export default function MoneyInput() {
     setSelectedCategoryId,
     isSaving,
     floatingCoins,
+    monthlyTransactions, // 追加
     handlePressCoin,
     removeFloatingCoin,
   } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* カスタムヘッダー */}
       <View style={styles.header}>
-        <Text style={styles.title}>EasyMoney Input</Text>
+        <View style={styles.headerLeft}>
+          <HamburgerMenu />
+        </View>
+        <Text style={styles.title}>EasyMoney</Text>
+        <View style={styles.headerRight} />
       </View>
 
+      {/* 予算進捗バー (ヘッダー直下に配置) */}
+      <SegmentedProgressBar 
+        categories={DEFAULT_CATEGORIES}
+        transactions={monthlyTransactions}
+      />
+
+      {/* カテゴリ選択 */}
       <View style={styles.categoryContainer}>
         <RadialCategoryMenu
           categories={DEFAULT_CATEGORIES} 
@@ -31,11 +46,12 @@ export default function MoneyInput() {
         />
       </View>
 
+      {/* コイン入力エリア */}
       <View style={styles.coinContainer}>
         <CoinList onPressCoin={handlePressCoin} />
       </View>
 
-      {/* アニメーションレイヤー: コイン画像をタップ位置に表示 */}
+      {/* アニメーションレイヤー */}
       {floatingCoins.map((coin) => (
         <FloatingCoin
           key={coin.id}
@@ -49,7 +65,7 @@ export default function MoneyInput() {
 
       {isSaving && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={Palette.white} />
         </View>
       )}
     </SafeAreaView>
@@ -59,23 +75,35 @@ export default function MoneyInput() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAE5C6',
+    backgroundColor: Palette.background,
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#272D2D',
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EAE5C6',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    backgroundColor: Palette.background,
     zIndex: 10,
   },
+  headerLeft: {
+    width: 40,
+    alignItems: 'flex-start',
+  },
+  headerRight: {
+    width: 40,
+  },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#272D2D',
+    color: Palette.text,
+    textAlign: 'center',
+    flex: 1,
   },
   categoryContainer: {
-    paddingVertical: 20,
+    paddingVertical: 10,
     alignItems: 'center',
     zIndex: 5,
   },
@@ -85,9 +113,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
