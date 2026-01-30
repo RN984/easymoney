@@ -1,23 +1,38 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { NestableScrollContainer } from 'react-native-draggable-flatlist'; // 変更ポイント
+import { SafeAreaView } from 'react-native-safe-area-context'; // Expo標準
 import { Palette } from '../../../constants/theme';
+import Accordion from './Category/components/Accordion';
 
 export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <NestableScrollContainer contentContainerStyle={styles.content}>
         <Text style={styles.title}>設定</Text>
+        
+        {/* アプリ情報セクション */}
         <View style={styles.section}>
           <Text style={styles.label}>アプリバージョン</Text>
           <Text style={styles.value}>1.0.0</Text>
         </View>
+
+        {/* ユーザー設定セクション */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>ユーザー設定</Text>
+        </View>
+
+        {/* ここにアコーディオンを配置 */}
+        <Accordion />
+
         <View style={styles.section}>
-          <Text style={styles.label}>ユーザー設定</Text>
+          <Text style={styles.label}>その他</Text>
           <Text style={styles.description}>
-            カテゴリ編集やテーマ変更機能は現在開発中です。
+            その他の設定項目は順次追加予定です。
           </Text>
         </View>
-      </View>
+        
+      </NestableScrollContainer>
     </SafeAreaView>
   );
 }
@@ -29,11 +44,21 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 100,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: Palette.text,
+  },
+  sectionHeader: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: Palette.text,
   },
   section: {
