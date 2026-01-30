@@ -1,13 +1,13 @@
-// src/screens/MoneyInput/index.tsx
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_CATEGORIES } from '../constants/categories';
-import { Palette } from '../constants/theme'; // テーマ定数をインポート
-// ファイル名が HumburgerMenu.tsx となっているため、そのままインポートします
+import { DEFAULT_CATEGORIES } from '../constants/categories'; // パス調整
+import { Palette } from '../constants/theme'; // パス調整
 import { HamburgerMenu } from '../src/components/HumburgerMenu';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
+// ▼ 追加: ProgressBar のインポート
+import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/SegmentedProgressBar';
 import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
 
 export default function MoneyInput() {
@@ -16,25 +16,27 @@ export default function MoneyInput() {
     setSelectedCategoryId,
     isSaving,
     floatingCoins,
+    monthlyTransactions, // ▼ 追加: フックからデータを受け取る
     handlePressCoin,
     removeFloatingCoin,
   } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* カスタムヘッダー */}
+      {/* ヘッダー */}
       <View style={styles.header}>
-        {/* 左: メニューボタン */}
         <View style={styles.headerLeft}>
           <HamburgerMenu />
         </View>
-
-        {/* 中央: タイトル */}
-        <Text style={styles.title}>EasyMoney Input</Text>
-
-        {/* 右: バランス調整用のダミーView（タイトルを中央寄せするため） */}
+        <Text style={styles.title}>EasyMoney</Text>
         <View style={styles.headerRight} />
       </View>
+
+      {/* ▼ 追加: ProgressBar を配置 */}
+      <SegmentedProgressBar 
+        categories={DEFAULT_CATEGORIES}
+        transactions={monthlyTransactions || []} 
+      />
 
       <View style={styles.categoryContainer}>
         <RadialCategoryMenu
@@ -48,7 +50,7 @@ export default function MoneyInput() {
         <CoinList onPressCoin={handlePressCoin} />
       </View>
 
-      {/* アニメーションレイヤー: コイン画像をタップ位置に表示 */}
+      {/* アニメーションレイヤー */}
       {floatingCoins.map((coin) => (
         <FloatingCoin
           key={coin.id}
@@ -75,32 +77,32 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.background,
   },
   header: {
-    flexDirection: 'row', // 横並びにする
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // 両端と中央に配置
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Palette.text,
+    borderBottomColor: '#ddd',
     backgroundColor: Palette.background,
     zIndex: 10,
   },
   headerLeft: {
-    width: 40, // 左右の幅を固定してタイトルを中央に保つ
+    width: 40,
     alignItems: 'flex-start',
   },
   headerRight: {
-    width: 40, // 左側と同じ幅のダミー
+    width: 40,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: Palette.text,
     textAlign: 'center',
-    flex: 1, // 残りのスペースを埋める
+    flex: 1,
   },
   categoryContainer: {
-    paddingVertical: 20,
+    paddingVertical: 10,
     alignItems: 'center',
     zIndex: 5,
   },
@@ -110,12 +112,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)', // 背景を少し暗くする
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,

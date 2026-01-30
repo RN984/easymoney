@@ -12,48 +12,63 @@ interface MonthlyChartProps {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CHART_HEIGHT = 200;
-const CHART_PADDING = 20;
+const CHART_PADDING = 32; // 余白を調整
 
 export const MonthlyChart: React.FC<MonthlyChartProps> = ({ transactions, currentDate }) => {
-  // 日ごとの集計
+  // 日ごとの集計ロジックを堅牢に修正
   const dailyTotals = useMemo(() => {
-    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const totals = new Array(daysInMonth).fill(0);
 
     transactions.forEach(t => {
-      const day = t.createdAt.getDate();
-      if (day >= 1 && day <= daysInMonth) {
-        totals[day - 1] += t.totalAmount;
+      // 重要：t.createdAt が string（ISO文字列）で届いている場合があるため Date に変換
+      const date = new Date(t.createdAt);
+      
+      // 無効な日付のチェック
+      if (isNaN(date.getTime())) return;
+
+      // 現在表示中の月と同じデータのみを集計
+      if (date.getFullYear() === year && date.getMonth() === month) {
+        const day = date.getDate();
+        if (day >= 1 && day <= daysInMonth) {
+          totals[day - 1] += t.totalAmount;
+        }
       }
     });
     return totals;
   }, [transactions, currentDate]);
 
-  const maxAmount = Math.max(...dailyTotals, 1000); // 最小でも1000円スケール
-  const barWidth = (SCREEN_WIDTH - CHART_PADDING * 2) / dailyTotals.length * 0.6;
-  const stepX = (SCREEN_WIDTH - CHART_PADDING * 2) / dailyTotals.length;
+  const maxAmount = Math.max(...dailyTotals, 1000); 
+  const chartInnerWidth = SCREEN_WIDTH - CHART_PADDING * 2;
+  const stepX = chartInnerWidth / dailyTotals.length;
+  const barWidth = stepX * 0.6;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
         {currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月の支出
       </Text>
+      
       <View style={styles.chartContainer}>
-        <Svg width={SCREEN_WIDTH - CHART_PADDING * 2} height={CHART_HEIGHT}>
-          {/* 基準線 (下線) */}
+        <Svg width={chartInnerWidth} height={CHART_HEIGHT}>
+          {/* ベースライン */}
           <Line
             x1="0"
-            y1={CHART_HEIGHT}
-            x2={SCREEN_WIDTH}
-            y2={CHART_HEIGHT}
-            stroke={Colors.light.text}  
+            y1={CHART_HEIGHT - 20}
+            x2={chartInnerWidth}
+            y2={CHART_HEIGHT - 20}
+            stroke={Colors.light.text}
             strokeWidth="1"
+            opacity={0.3}
           />
           
           {dailyTotals.map((amount, index) => {
-            const barHeight = (amount / maxAmount) * (CHART_HEIGHT - 20); // 上部余白確保
+            // グラフの高さを計算（下部のテキストスペースを確保）
+            const barHeight = (amount / maxAmount) * (CHART_HEIGHT - 40);
             const x = index * stepX + (stepX - barWidth) / 2;
-            const y = CHART_HEIGHT - barHeight;
+            const y = (CHART_HEIGHT - 20) - barHeight;
 
             return (
               <React.Fragment key={index}>
@@ -61,11 +76,11 @@ export const MonthlyChart: React.FC<MonthlyChartProps> = ({ transactions, curren
                   x={x}
                   y={y}
                   width={barWidth}
-                  height={barHeight}
-                  fill={Colors.light.primary}
+                  height={Math.max(barHeight, 0)} // マイナス値防止
+                  fill={Colors.light.secondary} // 背景と同化しないようイエローに変更
                   rx={2}
                 />
-                {/* 5日ごとに日付を表示 */}
+                {/* 5日おきに日付を表示 */}
                 {(index + 1) % 5 === 0 && (
                   <SvgText
                     x={x + barWidth / 2}
@@ -82,38 +97,54 @@ export const MonthlyChart: React.FC<MonthlyChartProps> = ({ transactions, curren
           })}
         </Svg>
       </View>
-      <Text style={styles.totalText}>
-        合計: ¥{dailyTotals.reduce((a, b) => a + b, 0).toLocaleString()}
-      </Text>
+      
+      <View style={styles.footer}>
+        <Text style={styles.totalLabel}>合計支出</Text>
+        <Text style={styles.totalValue}>
+          ¥{dailyTotals.reduce((a, b) => a + b, 0).toLocaleString()}
+        </Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: Colors.light.background, // 背景色をベージュに変更してグラフを見やすく
     margin: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.text,
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   chartContainer: {
-    marginVertical: 10,
+    height: CHART_HEIGHT,
+    justifyContent: 'center',
+    marginTop: 10,
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 8,
   },
-  totalText: {
-    marginTop: 10,
-    fontSize: 18,
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(39, 45, 45, 0.1)',
+    paddingTop: 8,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  totalLabel: {
+    fontSize: 14,
+    color: Colors.light.text,
+    marginRight: 8,
+  },
+  totalValue: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.light.primary,
   }
