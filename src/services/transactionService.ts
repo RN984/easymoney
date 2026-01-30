@@ -2,10 +2,13 @@
 import {
   addDoc,
   collection,
+  doc,
   DocumentData,
   FirestoreDataConverter,
   getDocs,
+  increment,
   QueryDocumentSnapshot,
+  runTransaction,
   SnapshotOptions,
   Timestamp
 } from 'firebase/firestore';
@@ -67,12 +70,16 @@ const itemConverter: FirestoreDataConverter<HouseholdItem> = {
 // Service Methods
 // ==========================================
 
+/**
+ * 新規の親家計簿データ(Header)を作成します。
+ */
 export const createHeader = async (data: CreateHouseholdDTO): Promise<Household> => {
   try {
     const docRef = await addDoc(
       collection(db, 'households').withConverter(householdConverter), 
       data as Household
     );
+    // ID付きで返す
     return { ...data, id: docRef.id };
   } catch (error) {
     console.error('Error creating household header:', error);
@@ -80,15 +87,38 @@ export const createHeader = async (data: CreateHouseholdDTO): Promise<Household>
   }
 };
 
-export const addItem = async (parentId: string, data: Omit<CreateHouseholdItemDTO, 'transactionId'>): Promise<HouseholdItem> => {
+/**
+ * 既存の親家計簿に明細を追加し、親の合計金額をアトミックに更新します。
+ */
+export const addItemToHousehold = async (parentId: string, data: Omit<CreateHouseholdItemDTO, 'transactionId'>): Promise<HouseholdItem> => {
   try {
-    const itemData: CreateHouseholdItemDTO = { ...data, transactionId: parentId };
-    const subCollectionRef = collection(db, 'households', parentId, 'items').withConverter(itemConverter);
-    const docRef = await addDoc(subCollectionRef, itemData as HouseholdItem);
-    return { ...itemData, id: docRef.id };
+    // Transactionを実行
+    return await runTransaction(db, async (transaction) => {
+      // 1. 親ドキュメントとサブコレクションの参照準備
+      const parentRef = doc(db, 'households', parentId).withConverter(householdConverter);
+      const itemsCollectionRef = collection(db, 'households', parentId, 'items').withConverter(itemConverter);
+      const newItemRef = doc(itemsCollectionRef); // IDを自動生成
+
+      const newItem: HouseholdItem = {
+        ...data,
+        id: newItemRef.id,
+        transactionId: parentId,
+      };
+
+      // 2. 書き込み操作
+      // 明細の追加
+      transaction.set(newItemRef, newItem);
+
+      // 親の合計金額をインクリメント更新 (Read-Modify-WriteではなくAtomic Incrementを使用)
+      transaction.update(parentRef, {
+        totalAmount: increment(data.amount)
+      });
+
+      return newItem;
+    });
   } catch (error) {
     console.error(`Error adding item to household ${parentId}:`, error);
-    throw new Error('明細の追加に失敗しました。');
+    throw new Error('明細の追加と集計更新に失敗しました。');
   }
 };
 

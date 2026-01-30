@@ -1,3 +1,4 @@
+// src/screens/MoneyInput/index.tsx
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { DEFAULT_CATEGORIES } from '../../../constants/categories';
@@ -84,8 +85,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(39, 45, 45, 0.5)',
+    position: 'absolute',
+    top: 50,
+    right: 20,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,

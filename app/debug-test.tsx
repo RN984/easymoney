@@ -1,8 +1,8 @@
-// app/firebase-test.tsx
+// app/debug-test.tsx
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CreateHouseholdDTO } from '../src/index';
-import { addItem, createHeader } from '../src/services/transactionService';
+import { addItemToHousehold, createHeader } from '../src/services/transactionService';
 
 // ==========================================
 // Design System Colors
@@ -26,7 +26,7 @@ export default function FirebaseTestScreen() {
       // 1. 親データ (Household) の作成
       const headerData: CreateHouseholdDTO = {
         categoryId: 'cat_test_001',
-        totalAmount: 1500, // 合計金額
+        totalAmount: 0, // ★初期値は0にして、明細追加時に加算されるか確認するのが良い
         transactionName: 'テスト買い物',
         memo: 'Firebase疎通テスト',
         createdAt: new Date(),
@@ -36,23 +36,23 @@ export default function FirebaseTestScreen() {
       setLog(prev => prev + `\n✅ 親データ作成成功: ID=${newHeader.id}`);
 
       // 2. 子データ (HouseholdItem) の追加
-      await addItem(newHeader.id, {
+      await addItemToHousehold(newHeader.id, {
         categoryId: 'cat_test_001',
         item: 'おにぎり',
         amount: 500,
         memo: '明細1',
         createdAt: new Date(),
       });
-      setLog(prev => prev + `\n✅ 明細1 追加成功`);
+      setLog(prev => prev + `\n✅ 明細1 追加成功 & 合計更新`);
 
-      await addItem(newHeader.id, {
+      await addItemToHousehold(newHeader.id, {
         categoryId: 'cat_test_001',
         item: 'お茶',
         amount: 1000,
         memo: '明細2',
         createdAt: new Date(),
       });
-      setLog(prev => prev + `\n✅ 明細2 追加成功`);
+      setLog(prev => prev + `\n✅ 明細2 追加成功 & 合計更新`);
 
       Alert.alert('成功', 'Firebaseへの保存が完了しました！');
       
