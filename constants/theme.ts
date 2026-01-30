@@ -1,53 +1,51 @@
+// constants/theme.ts
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design System Color Palette
+ * Based on user requirements:
+ * - Background (Main): #EAE5C6
+ * - Text / Surface: #272D2D
+ * - Primary Action: #6179B5
+ * - Secondary / Highlight: #F4DA61
+ * - Accent / Alert: #DB8479
  */
 
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const Palette = {
+  background: '#EAE5C6',
+  text: '#272D2D',
+  primary: '#6179B5',
+  secondary: '#F4DA61',
+  accent: '#DB8479',
+  white: '#FFFFFF',
+  surface: '#FFFFFF', // カードやモーダル等の背景用
+} as const;
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: Palette.text,
+    background: Palette.background,
+    tint: Palette.primary,
+    icon: Palette.text,
+    tabIconDefault: Palette.text,
+    tabIconSelected: Palette.primary,
+    // Custom semantic colors
+    primary: Palette.primary,
+    secondary: Palette.secondary,
+    accent: Palette.accent,
+    surface: Palette.surface,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    // 今回の要件ではダークモードの具体的な指定がないため、Lightモードのトーンを維持しつつ視認性を確保する設定にするか、
+    // あるいはデザインシステムが固定色の場合はLightと同じ値を割り当てることが一般的です。
+    // ここでは安全のためLightと同じ配色をベースにします。
+    text: Palette.text,
+    background: Palette.background,
+    tint: Palette.primary,
+    icon: Palette.text,
+    tabIconDefault: Palette.text,
+    tabIconSelected: Palette.primary,
+    primary: Palette.primary,
+    secondary: Palette.secondary,
+    accent: Palette.accent,
+    surface: Palette.surface,
   },
 };
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});

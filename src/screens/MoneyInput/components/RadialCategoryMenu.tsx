@@ -1,88 +1,102 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Category } from '../../../index';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Category } from '../../../index'; // src/index.ts からインポート
 
 interface RadialCategoryMenuProps {
-  selectedCategoryId: string;
-  onSelectCategory: (id: string) => void;
+  categories: Category[];
+  selectedCategoryId: string | null;
+  onSelectCategory: (categoryId: string) => void;
+  radius?: number; // メニューの半径
 }
 
-// 仮のマスタデータ (後でServiceから取得するように変更します)
-const MOCK_CATEGORIES: Category[] = [
-  { id: 'cat_food', name: '食費', color: '#FF7043' },
-  { id: 'cat_transport', name: '交通費', color: '#42A5F5' },
-  { id: 'cat_daily', name: '日用品', color: '#66BB6A' },
-  { id: 'cat_hobby', name: '趣味', color: '#AB47BC' },
-  { id: 'cat_other', name: 'その他', color: '#78909C' },
-];
+const { width } = Dimensions.get('window');
+const MENU_SIZE = width * 0.9; // コンテナのサイズ
+const BUTTON_SIZE = 60; // 各カテゴリボタンのサイズ
 
 export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
+  categories,
   selectedCategoryId,
   onSelectCategory,
+  radius = 120, // デフォルト半径
 }) => {
+  const centerX = MENU_SIZE / 2;
+  const centerY = MENU_SIZE / 2;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>カテゴリ選択</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {MOCK_CATEGORIES.map((cat) => {
-          const isSelected = cat.id === selectedCategoryId;
-          return (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                isSelected && { backgroundColor: cat.color, borderColor: cat.color },
-                !isSelected && { borderColor: cat.color },
-              ]}
-              onPress={() => onSelectCategory(cat.id)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  isSelected ? styles.categoryTextSelected : { color: cat.color },
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+    <View style={[styles.container, { width: MENU_SIZE, height: MENU_SIZE }]}>
+      {/* 中心装飾（オプション） */}
+      <View style={[styles.centerDeco, { left: centerX - 10, top: centerY - 10 }]} />
+
+      {categories.map((category, index) => {
+        // 角度計算: -90度(真上)からスタートし、等間隔に配置
+        const angleStep = (2 * Math.PI) / categories.length;
+        const angle = -Math.PI / 2 + index * angleStep;
+
+        // 座標計算
+        const x = centerX + radius * Math.cos(angle) - BUTTON_SIZE / 2;
+        const y = centerY + radius * Math.sin(angle) - BUTTON_SIZE / 2;
+
+        const isSelected = selectedCategoryId === category.id;
+
+        return (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.categoryButton,
+              {
+                left: x,
+                top: y,
+                backgroundColor: category.color,
+                borderColor: isSelected ? '#333' : 'transparent',
+                borderWidth: isSelected ? 3 : 0,
+                transform: [{ scale: isSelected ? 1.2 : 1.0 }],
+              },
+            ]}
+            onPress={() => onSelectCategory(category.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.categoryText}>{category.name}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
+    position: 'relative',
+    alignSelf: 'center',
+    marginTop: 20,
+    // デバッグ用に背景色をつける場合はコメントアウト解除
+    // backgroundColor: 'rgba(0,0,0,0.05)', 
+    borderRadius: MENU_SIZE / 2,
   },
-  label: {
-    marginLeft: 16,
-    marginBottom: 8,
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
+  centerDeco: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ccc',
+    opacity: 0.3,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  categoryChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 2,
-    backgroundColor: 'transparent',
+  categoryButton: {
+    position: 'absolute',
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    borderRadius: BUTTON_SIZE / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   categoryText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 14,
-  },
-  categoryTextSelected: {
-    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
