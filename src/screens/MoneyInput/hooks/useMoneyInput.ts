@@ -1,163 +1,120 @@
+// src/screens/MoneyInput/hooks/useMoneyInput.ts
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { Category, CoinValue, CreateHouseholdDTO, Household } from '../../../index';
-import { fetchBudget, fetchCategories } from '../../../services/masterService'; // fetchBudget追加
+import { Category, CoinValue, CreateHouseholdDTO, Household, LocationData } from '../../../index';
+import { fetchBudget, fetchCategories } from '../../../services/masterService';
 import { createHousehold, getMonthlyTransactions } from '../../../services/transactionService';
 
-// アニメーション用のコイン型定義
-export interface FloatingCoinData {
-  id: string;
-  value: CoinValue;
-  x: number;
-  y: number;
-}
-
-// 引数を受け取れるように修正
-export const useMoneyInput = (initialCategoryId: string) => {
-  const [amount, setAmount] = useState(0);
+export const useMoneyInput = () => {
+  // --- State ---
+  const [currentAmount, setCurrentAmount] = useState<number>(0);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_food');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
-  const [monthlyTotal, setMonthlyTotal] = useState(0);
-  const [transactions, setTransactions] = useState<Household[]>([]); // 追加
-  const [budget, setBudget] = useState<number>(0); // 追加
-  const [toast, setToast] = useState({ visible: false, message: '', color: '' });
-  const [isSaving, setIsSaving] = useState(false);
+  const [location, setLocation] = useState<LocationData | undefined>(undefined);
   
-  const [floatingCoins, setFloatingCoins] = useState<any[]>([]);
+  // 予算・履歴
+  const [budget, setBudget] = useState<number>(0);
+  const [transactions, setTransactions] = useState<Household[]>([]);
+
+  // UI Feedback
+  const [toast, setToast] = useState<{ message: string | null; key: number }>({
+    message: null,
+    key: 0,
+  });
+
+  // --- Actions ---
+
+  // 初期化処理
+  const loadData = useCallback(async () => {
+    try {
+      const [cats, bud, txs] = await Promise.all([
+        fetchCategories(),
+        fetchBudget(),
+        getMonthlyTransactions(new Date()),
+      ]);
+
+      setCategories(cats);
+      setBudget(bud);
+      setTransactions(txs);
+
+      // カテゴリ初期選択
+      if (cats.length > 0) {
+        // 既存の選択がなければ先頭を選択（必要に応じてロジック調整）
+        setSelectedCategoryId((prev) => prev || cats[0].id);
+      }
+
+      // 位置情報取得
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load data', error);
+      Alert.alert('エラー', 'データの読み込みに失敗しました');
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // カテゴリ選択
+  const handleSelectCategory = useCallback((id: string) => {
+    setSelectedCategoryId(id);
   }, []);
 
-  const loadData = async () => {
+  // コイン追加 & 保存処理
+  const handleAddCoin = useCallback(async (coinVal: CoinValue) => {
+    // 画面上の合計金額を更新（セッション用）
+    setCurrentAmount((prev) => prev + coinVal);
+
+    const category = categories.find((c) => c.id === selectedCategoryId);
+    const categoryName = category?.name || '未分類';
+
+    // トースト表示更新
+    setToast((prev) => ({
+      message: `${categoryName}に +${coinVal.toLocaleString()}円`,
+      key: prev.key + 1,
+    }));
+
     try {
-      // 並行してデータ取得
-      const [cats, bud] = await Promise.all([
-        fetchCategories(),
-        fetchBudget()
-      ]);
-      
-      setCategories(cats);
-      setBudget(bud);
-
-      if (cats.length > 0 && !selectedCategoryId) {
-        setSelectedCategoryId(cats[0].id);
-      }
-      await fetchMonthlyTotal();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchMonthlyTotal = async () => {
-    try {
-      const txs = await getMonthlyTransactions(new Date());
-      const total = txs.reduce((sum, t) => sum + t.totalAmount, 0);
-      setTransactions(txs); // トランザクション自体もStateに保存
-      setMonthlyTotal(total);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const showToast = (message: string, color: string) => {
-    setToast({ visible: true, message, color });
-    setTimeout(() => {
-      setToast(prev => ({ ...prev, visible: false }));
-    }, 2000);
-  };
-
-  const handleSelectCategory = (id: string) => {
-    setSelectedCategoryId(id);
-  };
-
-  const handlePressCoin = (value: CoinValue, x: number, y: number) => {
-    setAmount((prev) => prev + value);
-    
-    const id = Math.random().toString(36).substr(2, 9);
-    setFloatingCoins(prev => [...prev, { id, value, x, y }]);
-
-    const category = categories.find(c => c.id === selectedCategoryId);
-    // categoriesが空の場合はデフォルト等から探す必要があるかもしれませんが、
-    // ここでは取得済みと仮定、またはUI側で制御
-    if (category) {
-      showToast(`${category.name}に +${value.toLocaleString()}円`, category.color);
-    }
-  };
-
-  const removeFloatingCoin = (id: string) => {
-    setFloatingCoins(prev => prev.filter(c => c.id !== id));
-  };
-
-  const handleReset = () => {
-    setAmount(0);
-  };
-
-  const getCurrentLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return undefined;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      return {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-    } catch (error) {
-      console.log('Location fetch failed:', error);
-      return undefined;
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (amount === 0) return;
-    setIsSaving(true);
-    try {
-      const locationData = await getCurrentLocation();
-      const newTransaction: CreateHouseholdDTO = {
+      const dto: CreateHouseholdDTO = {
         categoryId: selectedCategoryId,
-        transactionName: '',
-        totalAmount: amount,
+        totalAmount: coinVal,
         createdAt: new Date(),
-        location: locationData,
+        location: location,
       };
-
-      await createHousehold(newTransaction);
       
-      Alert.alert('完了', '記録しました');
-      setAmount(0);
-      await fetchMonthlyTotal(); // 再取得で反映
+      // 保存実行
+      await createHousehold(dto);
 
-    } catch (error) {
+      // 履歴を再取得してバーに反映
+      const txs = await getMonthlyTransactions(new Date());
+      setTransactions(txs);
+      
+    } catch (e) {
+      console.error(e);
       Alert.alert('エラー', '保存に失敗しました');
-      console.error(error);
-    } finally {
-      setIsSaving(false);
     }
-  };
+  }, [categories, selectedCategoryId, location]);
 
   return {
-    amount,
-    categories,
+    // Data
+    currentAmount,
     selectedCategoryId,
-    setSelectedCategoryId,
-    monthlyTotal,
-    transactions, // 追加
-    budget, // 追加
+    categories,
+    budget,
+    transactions,
     toast,
-    isSaving,
-    floatingCoins,
+    
+    // Actions
     handleSelectCategory,
-    handlePressCoin,
-    removeFloatingCoin,
-    handleReset,
-    handleSubmit,
-    refreshTotal: fetchMonthlyTotal,
+    handleAddCoin,
+    refreshData: loadData,
   };
 };

@@ -1,8 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_CATEGORIES } from '../constants/categories'; // ※注意: CategoriesはHookから取得した方が良いですが、ここでは既存維持
-import { Palette } from '../constants/theme';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
+import { DEFAULT_CATEGORIES } from '../src/constants/categories'; // ※注意: CategoriesはHookから取得した方が良いですが、ここでは既存維持
+import { Palette } from '../src/constants/theme';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';

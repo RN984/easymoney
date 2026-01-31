@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { DEFAULT_CATEGORIES } from '../../constants/categories';
+import { DEFAULT_CATEGORIES } from '../constants/categories';
 import { db } from '../database/db';
 import { Category } from '../index';
 

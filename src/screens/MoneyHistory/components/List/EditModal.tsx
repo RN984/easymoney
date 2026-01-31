@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../../../../constants/theme';
+import { Colors } from '../../../../constants/theme';
 import { Household, UpdateHouseholdDTO } from '../../../../index';
 import { updateHousehold } from '../../../../services/transactionService';
 

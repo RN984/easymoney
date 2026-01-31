@@ -1,148 +1,89 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { NestableScrollContainer } from 'react-native-draggable-flatlist';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Palette } from '../../../constants/theme';
-import { fetchBudget, updateBudget } from '../../services/masterService';
-import Accordion from './Category/components/Accordion';
+// src/screens/Settings/index.tsx
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../../constants/theme';
+
+// Components
+import { SettingItem } from './components/SettingItem';
+import { SettingSection } from './components/SettingSection';
+
+// Hooks
+import { useSettings } from './hooks/useSettings';
 
 export default function SettingsScreen() {
-  const [budgetInput, setBudgetInput] = useState('0');
-
-  useEffect(() => {
-    loadBudget();
-  }, []);
-
-  const loadBudget = async () => {
-    const b = await fetchBudget();
-    setBudgetInput(b.toString());
-  };
-
-  const handleSaveBudget = async () => {
-    const val = parseInt(budgetInput, 10);
-    if (isNaN(val) || val < 0) {
-      Alert.alert('エラー', '有効な数値を入力してください');
-      return;
-    }
-    await updateBudget(val);
-    Alert.alert('完了', '予算を保存しました');
-  };
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { isLoading, handleExportCSV, handleResetDatabase } = useSettings();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <NestableScrollContainer contentContainerStyle={styles.content}>
-        <Text style={styles.title}>設定</Text>
-        
-        {/* 予算設定セクション（新規追加） */}
-        <View style={styles.section}>
-          <Text style={styles.label}>月間予算 (円)</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              value={budgetInput}
-              onChangeText={setBudgetInput}
-              keyboardType="numeric"
-              placeholder="例: 50000"
-            />
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveBudget}>
-              <Text style={styles.saveButtonText}>保存</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.description}>
-            ホーム画面のプログレスバーの上限として使用されます。
-          </Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Loading Overlay */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
         </View>
+      )}
 
-        {/* ユーザー設定セクション */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>カテゴリ設定</Text>
-        </View>
-
-        <Accordion />
-        <View style={styles.section}>
-          <Text style={styles.label}>その他</Text>
-          <Text style={styles.description}>
-            その他の設定項目は順次追加予定です。
-          </Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         
-      </NestableScrollContainer>
-    </SafeAreaView>
+        {/* Section 1: General Settings */}
+        <SettingSection title="一般">
+          <SettingItem
+            icon="pricetag"
+            label="カテゴリ設定"
+            onPress={() => router.push('./components/settings/categories')} // パスは適宜調整
+          />
+          {/* 必要に応じて予算設定なども追加 */}
+          {/* <SettingItem icon="wallet" label="予算設定" onPress={() => {}} /> */}
+        </SettingSection>
+
+        {/* Section 2: Data Management */}
+        <SettingSection title="データ管理">
+          <SettingItem
+            icon="download-outline"
+            label="CSVエクスポート"
+            onPress={handleExportCSV}
+            showChevron={false}
+          />
+        </SettingSection>
+
+        {/* Section 3: Debug / Danger Zone */}
+        <SettingSection title="デバッグ">
+          <SettingItem
+            icon="trash-outline"
+            label="データを初期化"
+            onPress={handleResetDatabase}
+            isDestructive
+            showChevron={false}
+          />
+          <SettingItem
+            icon="information-circle-outline"
+            label="バージョン"
+            value="1.0.0"
+            onPress={() => {}} // About画面などへ
+          />
+        </SettingSection>
+
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Palette.background,
+    backgroundColor: Colors.light.background, // 背景色をテーマに合わせる
   },
-  content: {
-    padding: 20,
-    paddingBottom: 100,
+  scrollContent: {
+    paddingVertical: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: Palette.text,
-  },
-  sectionHeader: {
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Palette.text,
-  },
-  section: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: Palette.text,
-  },
-  value: {
-    fontSize: 16,
-    color: '#666',
-  },
-  description: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 5,
-  },
-  inputRow: {
-    flexDirection: 'row',
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    zIndex: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  saveButton: {
-    backgroundColor: Palette.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });

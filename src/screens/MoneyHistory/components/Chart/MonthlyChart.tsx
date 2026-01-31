@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 import { Colors } from '../../../../constants/theme';
-import { Household } from '../../../index';
+import { Household } from '../../../../index';
 
 interface MonthlyChartProps {
   transactions: Household[];

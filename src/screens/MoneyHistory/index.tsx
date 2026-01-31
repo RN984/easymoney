@@ -1,60 +1,82 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+// src/screens/MoneyHistory/index.tsx
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../../constants/theme';
-import { Category, Household } from '../../index';
-import { fetchCategories } from '../../services/masterService';
-import { getMonthlyTransactions } from '../../services/transactionService';
-import { EditModal } from './components/List/EditModal';
-import { TransactionList } from './components/List/TransactionList';
+
+// Components
+import { DateNavigator } from './components/DateNavigator';
+import { EditModal } from './components/List/EditModal'; // 既存のパスに合わせてください
+import { TransactionList } from './components/List/TransactionList'; // 既存のパス
+import { MonthlyChart } from './components/MonthlyChart'; // 既存のパス
+import { SummaryHeader } from './components/SummaryHeader';
+
+// Hooks
+import { useHistoryScreen } from './hooks/useHistoryScreen';
 
 export default function MoneyHistoryScreen() {
-  const [transactions, setTransactions] = useState<Household[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedItem, setSelectedItem] = useState<Household | null>(null);
-  const [isEditModalVisible, setEditModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
-  const loadData = async () => {
-    // 今月のデータを取得 (実際は月選択ロジックが必要)
-    const data = await getMonthlyTransactions(new Date());
-    setTransactions(data);
-    const cats = await fetchCategories();
-    setCategories(cats);
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
-
-  const handleEdit = (item: Household) => {
-    setSelectedItem(item);
-    setEditModalVisible(true);
-  };
+  // Logic Extraction
+  const {
+    currentDate,
+    transactions,
+    summary,
+    isLoading,
+    selectedTransaction,
+    isEditModalVisible,
+    handleChangeMonth,
+    handleDelete,
+    handleUpdate,
+    openEditModal,
+    closeEditModal,
+    refreshData,
+  } = useHistoryScreen();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      
+      {/* 1. Header (共通ヘッダーまたは戻るボタン) */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>履歴</Text>
+        {/* 必要であれば HeaderArea を配置、あるいはシンプルなタイトル */}
       </View>
 
-      <TransactionList 
-        transactions={transactions} 
-        categories={categories}
-        onRefresh={loadData}
-        onEdit={handleEdit}
+      {/* 2. Date Navigation */}
+      <DateNavigator 
+        currentDate={currentDate} 
+        onChangeMonth={handleChangeMonth} 
       />
 
-      <EditModal 
-        visible={isEditModalVisible}
-        targetItem={selectedItem}
-        onClose={() => setEditModalVisible(false)}
-        onUpdated={loadData}
+      {/* 3. Summary Cards */}
+      <SummaryHeader summary={summary} />
+
+      {/* 4. Content (List with Chart Header) */}
+      <TransactionList
+        data={transactions}
+        onItemPress={openEditModal}
+        onRefresh={refreshData}
+        refreshing={isLoading}
+        // ListHeaderComponent としてチャートを渡すとスクロールがスムーズになります
+        ListHeaderComponent={
+          <View style={styles.chartContainer}>
+             <MonthlyChart data={transactions} />
+          </View>
+        }
       />
-    </SafeAreaView>
+
+      {/* 5. Edit Modal */}
+      {selectedTransaction && (
+        <EditModal
+          visible={isEditModalVisible}
+          transaction={selectedTransaction}
+          onClose={closeEditModal}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
+      )}
+    </View>
   );
 }
 
@@ -64,14 +86,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   header: {
-    padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingHorizontal: 20,
+    // 必要に応じて高さ調整
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+  chartContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
 });

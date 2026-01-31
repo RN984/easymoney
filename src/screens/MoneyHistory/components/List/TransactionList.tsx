@@ -5,7 +5,7 @@ import React from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
-import { Colors } from '../../../../../constants/theme';
+import { Colors } from '../../../../constants/theme';
 import { Category, Household } from '../../../../index';
 import { deleteHousehold } from '../../../../services/transactionService';
 

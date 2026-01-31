@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'; // Expoの標準アイコン
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { NestableDraggableFlatList, RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
-import { Palette } from '../../../../../constants/theme';
+import { Palette } from '../../../../constants/theme';
 import { Category } from '../../../../index';
 import { fetchCategories, updateCategories } from '../../../../services/masterService';
 import CategoryEditModal from './EditModal';

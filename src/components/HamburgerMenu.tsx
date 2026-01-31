@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { Colors } from '../constants/theme';
 
 export const HamburgerMenu = () => {
   const [visible, setVisible] = useState(false);
