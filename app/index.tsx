@@ -1,29 +1,30 @@
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_CATEGORIES } from '../constants/categories';
+import { DEFAULT_CATEGORIES } from '../constants/categories'; // ※注意: CategoriesはHookから取得した方が良いですが、ここでは既存維持
 import { Palette } from '../constants/theme';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
-import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/ProgressBar/SegmentedProgressBar';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
+import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/SegmentedProgressBar';
 import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
 
 export default function MoneyInput() {
   const {
+    categories, // Hookから取得したカテゴリを使用（マスター設定反映のため）
     selectedCategoryId,
     setSelectedCategoryId,
     isSaving,
-    amount, // 追加: バーに表示するため
+    amount, 
     floatingCoins,
-    monthlyTotal, // 修正: transactionsではなくtotalを受け取る
+    transactions, // 修正: transactionsを受け取る
+    budget,       // 修正: budgetを受け取る
     handlePressCoin,
     removeFloatingCoin,
   } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <HamburgerMenu />
@@ -32,15 +33,17 @@ export default function MoneyInput() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* 修正: ProgressBar のPropsを定義に合わせて変更 */}
+      {/* 修正: ProgressBar に正しいPropsを渡す */}
       <SegmentedProgressBar 
-        currentTotal={monthlyTotal}
+        categories={categories}
+        transactions={transactions}
+        budget={budget}
         pendingAmount={amount}
       />
 
       <View style={styles.categoryContainer}>
         <RadialCategoryMenu
-          categories={DEFAULT_CATEGORIES} 
+          categories={categories} // ここもHookからのcategoriesにすると設定変更が反映されます
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
@@ -50,7 +53,7 @@ export default function MoneyInput() {
         <CoinList onPressCoin={handlePressCoin} />
       </View>
 
-      {/* アニメーションレイヤー */}
+      {/* ... (残りは変更なし) */}
       {floatingCoins.map((coin) => (
         <FloatingCoin
           key={coin.id}
@@ -71,6 +74,7 @@ export default function MoneyInput() {
   );
 }
 
+// ... styles は変更なし
 const styles = StyleSheet.create({
   container: {
     flex: 1,

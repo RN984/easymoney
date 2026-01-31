@@ -6,16 +6,18 @@ import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CoinValue, CreateHouseholdDTO, LocationData } from '../../index';
-import { fetchCategories } from '../../services/masterService';
-import { createHousehold } from '../../services/transactionService';
+// Household型を追加
+import { CoinValue, CreateHouseholdDTO, Household, LocationData } from '../../index';
+// fetchBudget, getMonthlyTransactions を追加
+import { fetchBudget, fetchCategories } from '../../services/masterService';
+import { createHousehold, getMonthlyTransactions } from '../../services/transactionService';
 
 // Components
 import { Colors } from '../../../constants/theme';
 import { CoinList } from './components/Coin/CoinList';
 import { FeedbackToast } from './components/FeedbackToast';
-import { SegmentedProgressBar } from './components/ProgressBar/SegmentedProgressBar';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
+import { SegmentedProgressBar } from './components/SegmentedProgressBar';
 
 export default function MoneyInputScreen() {
   const router = useRouter();
@@ -27,15 +29,28 @@ export default function MoneyInputScreen() {
   const [categories, setCategories] = useState<any[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>(undefined);
   
+  // 追加: 予算とトランザクション（履歴）のState
+  const [budget, setBudget] = useState<number>(0);
+  const [transactions, setTransactions] = useState<Household[]>([]);
+
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
 
   useEffect(() => {
     const init = async () => {
-      const cats = await fetchCategories();
+      // 並行してデータを取得
+      const [cats, bud, txs] = await Promise.all([
+        fetchCategories(),
+        fetchBudget(),
+        getMonthlyTransactions(new Date())
+      ]);
+
       setCategories(cats);
-      // 初回ロード時にカテゴリがあれば選択状態を更新するなどのロジックもここに推奨
+      setBudget(bud);
+      setTransactions(txs);
+
+      // 初回ロード時にカテゴリがあれば選択状態を更新
       if (cats.length > 0 && !selectedCategoryId) {
          setSelectedCategoryId(cats[0].id);
       }
@@ -56,10 +71,8 @@ export default function MoneyInputScreen() {
     const newAmount = currentAmount + coinVal;
     setCurrentAmount(newAmount);
 
-    // カテゴリ名の取得（安全策を追加）
     const categoryName = categories.find(c => c.id === selectedCategoryId)?.name || '未分類';
     
-    // Toast表示更新
     setToastMessage(`${categoryName}に +${coinVal.toLocaleString()}円`);
     setToastKey(prev => prev + 1);
 
@@ -71,6 +84,17 @@ export default function MoneyInputScreen() {
         location: location,
       };
       await createHousehold(dto); 
+      
+      // 保存成功後に履歴を再取得してバーに即時反映させる
+      const txs = await getMonthlyTransactions(new Date());
+      setTransactions(txs);
+      
+      // 入力中の金額をリセットするかは仕様次第ですが、ここでは連続入力のためにリセットしない場合と、
+      // 確定したならリセットする場合が考えられます。
+      // 元のコードではリセットしていませんでしたが、保存されたのであれば
+      // currentAmount は 0 に戻すのが一般的です。今回は元の挙動を維持しつつ、もし必要なら以下を有効化してください。
+      // setCurrentAmount(0); 
+
     } catch (e) {
       console.error(e);
       Alert.alert('エラー', '保存に失敗しました');
@@ -90,12 +114,13 @@ export default function MoneyInputScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Progress Bar */}
+      {/* Progress Bar: Propsを修正 */}
       <View style={styles.progressContainer}>
         <SegmentedProgressBar 
-          currentTotal={0}
+          categories={categories}      // 追加
+          transactions={transactions}  // 追加
+          budget={budget}              // 追加
           pendingAmount={currentAmount}
-          budget={50000} 
         /> 
       </View>
 
@@ -106,7 +131,6 @@ export default function MoneyInputScreen() {
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
-        {/* ここにあった FeedbackToast を削除 */}
       </View>
 
       {/* Footer Area: Coins */}
@@ -114,7 +138,6 @@ export default function MoneyInputScreen() {
         <CoinList onPressCoin={handleAddCoin} />
       </View>
 
-      {/* Feedback Toast (ここに移動: 最前面に表示させるため) */}
       <FeedbackToast message={toastMessage} uniqueKey={toastKey} />
     </View>
   );
@@ -143,7 +166,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    zIndex: 1, // 追加: 背面のコンテンツとしての順序を明示
+    zIndex: 1,
   },
   footer: {
     paddingBottom: 20,

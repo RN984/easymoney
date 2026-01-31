@@ -1,8 +1,8 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { Category, CoinValue, CreateHouseholdDTO } from '../../../index'; // 必要に応じてパス確認
-import { fetchCategories } from '../../../services/masterService';
+import { Category, CoinValue, CreateHouseholdDTO, Household } from '../../../index';
+import { fetchBudget, fetchCategories } from '../../../services/masterService'; // fetchBudget追加
 import { createHousehold, getMonthlyTransactions } from '../../../services/transactionService';
 
 // アニメーション用のコイン型定義
@@ -17,34 +17,44 @@ export interface FloatingCoinData {
 export const useMoneyInput = (initialCategoryId: string) => {
   const [amount, setAmount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
-  // 初期値を引数から設定
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
   const [monthlyTotal, setMonthlyTotal] = useState(0);
+  const [transactions, setTransactions] = useState<Household[]>([]); // 追加
+  const [budget, setBudget] = useState<number>(0); // 追加
   const [toast, setToast] = useState({ visible: false, message: '', color: '' });
-  // 保存中の状態を追加
   const [isSaving, setIsSaving] = useState(false);
   
-  // Floating Coin Animation State
-  const [floatingCoins, setFloatingCoins] = useState<FloatingCoinData[]>([]);
+  const [floatingCoins, setFloatingCoins] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const cats = await fetchCategories();
-    setCategories(cats);
-    // カテゴリが取得でき、かつ現在の選択が空なら先頭を選択
-    if (cats.length > 0 && !selectedCategoryId) {
-      setSelectedCategoryId(cats[0].id);
+    try {
+      // 並行してデータ取得
+      const [cats, bud] = await Promise.all([
+        fetchCategories(),
+        fetchBudget()
+      ]);
+      
+      setCategories(cats);
+      setBudget(bud);
+
+      if (cats.length > 0 && !selectedCategoryId) {
+        setSelectedCategoryId(cats[0].id);
+      }
+      await fetchMonthlyTotal();
+    } catch (e) {
+      console.error(e);
     }
-    await fetchMonthlyTotal();
   };
 
   const fetchMonthlyTotal = async () => {
     try {
-      const transactions = await getMonthlyTransactions(new Date());
-      const total = transactions.reduce((sum, t) => sum + t.totalAmount, 0);
+      const txs = await getMonthlyTransactions(new Date());
+      const total = txs.reduce((sum, t) => sum + t.totalAmount, 0);
+      setTransactions(txs); // トランザクション自体もStateに保存
       setMonthlyTotal(total);
     } catch (e) {
       console.error(e);
@@ -107,11 +117,9 @@ export const useMoneyInput = (initialCategoryId: string) => {
 
   const handleSubmit = async () => {
     if (amount === 0) return;
-
-    setIsSaving(true); // 保存開始
+    setIsSaving(true);
     try {
       const locationData = await getCurrentLocation();
-
       const newTransaction: CreateHouseholdDTO = {
         categoryId: selectedCategoryId,
         transactionName: '',
@@ -124,13 +132,13 @@ export const useMoneyInput = (initialCategoryId: string) => {
       
       Alert.alert('完了', '記録しました');
       setAmount(0);
-      await fetchMonthlyTotal();
+      await fetchMonthlyTotal(); // 再取得で反映
 
     } catch (error) {
       Alert.alert('エラー', '保存に失敗しました');
       console.error(error);
     } finally {
-      setIsSaving(false); // 保存終了
+      setIsSaving(false);
     }
   };
 
@@ -138,10 +146,12 @@ export const useMoneyInput = (initialCategoryId: string) => {
     amount,
     categories,
     selectedCategoryId,
-    setSelectedCategoryId, // 追加
+    setSelectedCategoryId,
     monthlyTotal,
+    transactions, // 追加
+    budget, // 追加
     toast,
-    isSaving, // 追加
+    isSaving,
     floatingCoins,
     handleSelectCategory,
     handlePressCoin,
