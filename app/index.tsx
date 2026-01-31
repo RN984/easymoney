@@ -5,8 +5,8 @@ import { Palette } from '../constants/theme';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
+import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/ProgressBar/SegmentedProgressBar';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
-import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/SegmentedProgressBar';
 import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
 
 export default function MoneyInput() {

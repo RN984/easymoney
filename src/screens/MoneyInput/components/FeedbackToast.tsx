@@ -9,7 +9,7 @@ import Animated, {
 
 interface Props {
   message: string | null;
-  uniqueKey: number; // 変更検知用
+  uniqueKey: number;
 }
 
 export const FeedbackToast: React.FC<Props> = ({ message, uniqueKey }) => {
@@ -19,13 +19,13 @@ export const FeedbackToast: React.FC<Props> = ({ message, uniqueKey }) => {
   useEffect(() => {
     if (!message) return;
 
-    // アニメーションのリセットと実行
+    // 数値をリセットしてからアニメーション開始
     opacity.value = 0;
     translateY.value = 20;
 
     opacity.value = withSequence(
       withTiming(1, { duration: 300 }),
-      withTiming(1, { duration: 1000 }), // 1秒待機
+      withTiming(1, { duration: 1000 }),
       withTiming(0, { duration: 300 })
     );
 
@@ -46,7 +46,8 @@ export const FeedbackToast: React.FC<Props> = ({ message, uniqueKey }) => {
   if (!message) return null;
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    // pointerEvents="none" を追加: トーストが表示されていても背面のボタン操作を阻害しないようにする
+    <Animated.View style={[styles.container, animatedStyle]} pointerEvents="none">
       <Text style={styles.text}>{message}</Text>
     </Animated.View>
   );
@@ -55,16 +56,29 @@ export const FeedbackToast: React.FC<Props> = ({ message, uniqueKey }) => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: '40%', // 画面中央付近
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    zIndex: 100,
+    // 画面全体に対する相対位置にするため、親(index.tsxのroot)基準で配置
+    top: '45%', 
+    alignSelf: 'center', // 左右中央寄せ
+    backgroundColor: 'rgba(39, 45, 45, 0.9)', // 少し濃くして視認性アップ (Colors.light.text ベース)
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    zIndex: 9999, // 最前面を強制
+    
+    // 影をつけて浮き上がらせる
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   text: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

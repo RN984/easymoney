@@ -11,11 +11,11 @@ import { fetchCategories } from '../../services/masterService';
 import { createHousehold } from '../../services/transactionService';
 
 // Components
-import { Colors } from '../../../constants/theme'; // Colorsをインポート
+import { Colors } from '../../../constants/theme';
 import { CoinList } from './components/Coin/CoinList';
 import { FeedbackToast } from './components/FeedbackToast';
+import { SegmentedProgressBar } from './components/ProgressBar/SegmentedProgressBar';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
-import { SegmentedProgressBar } from './components/SegmentedProgressBar';
 
 export default function MoneyInputScreen() {
   const router = useRouter();
@@ -23,42 +23,43 @@ export default function MoneyInputScreen() {
 
   // State
   const [currentAmount, setCurrentAmount] = useState<number>(0);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_food'); // デフォルト
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('cat_food');
   const [categories, setCategories] = useState<any[]>([]);
   const [location, setLocation] = useState<LocationData | undefined>(undefined);
   
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastKey, setToastKey] = useState(0); // リレンダリング用
+  const [toastKey, setToastKey] = useState(0);
 
-  // 初期化：カテゴリと位置情報の許可
   useEffect(() => {
     const init = async () => {
       const cats = await fetchCategories();
       setCategories(cats);
+      // 初回ロード時にカテゴリがあれば選択状態を更新するなどのロジックもここに推奨
+      if (cats.length > 0 && !selectedCategoryId) {
+         setSelectedCategoryId(cats[0].id);
+      }
 
-      // 位置情報の許可リクエスト
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
         setLocation({
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
-          // 逆ジオコーディングは必要に応じて実施
         });
       }
     };
     init();
   }, []);
 
-  // コイン追加処理
   const handleAddCoin = async (coinVal: CoinValue) => {
-    // 楽観的UI更新（ここではローカルステートのみ）
     const newAmount = currentAmount + coinVal;
     setCurrentAmount(newAmount);
 
-    // Toast表示
+    // カテゴリ名の取得（安全策を追加）
     const categoryName = categories.find(c => c.id === selectedCategoryId)?.name || '未分類';
+    
+    // Toast表示更新
     setToastMessage(`${categoryName}に +${coinVal.toLocaleString()}円`);
     setToastKey(prev => prev + 1);
 
@@ -67,7 +68,7 @@ export default function MoneyInputScreen() {
         categoryId: selectedCategoryId,
         totalAmount: coinVal,
         createdAt: new Date(),
-        location: location, // 位置情報を付与
+        location: location,
       };
       await createHousehold(dto); 
     } catch (e) {
@@ -80,22 +81,19 @@ export default function MoneyInputScreen() {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header Area */}
       <View style={styles.header}>
-         {/* 左上: 設定への導線 */}
         <TouchableOpacity onPress={() => router.push('/settings')} style={styles.iconButton}>
           <Ionicons name="menu" size={28} color={Colors.light.text} />
         </TouchableOpacity>
 
-        {/* 右上: 履歴画面への遷移ボタン */}
         <TouchableOpacity onPress={() => router.push('/history')} style={styles.iconButton}>
           <Ionicons name="stats-chart" size={24} color={Colors.light.primary} />
         </TouchableOpacity>
       </View>
 
-      {/* Progress Bar (予算消化率など) */}
+      {/* Progress Bar */}
       <View style={styles.progressContainer}>
-        {/* 修正: Props名を定義に合わせ、必須項目を追加 */}
         <SegmentedProgressBar 
-          currentTotal={0} // 一旦0またはDBから取得した値をセット
+          currentTotal={0}
           pendingAmount={currentAmount}
           budget={50000} 
         /> 
@@ -103,22 +101,21 @@ export default function MoneyInputScreen() {
 
       {/* Main Interaction Area */}
       <View style={styles.mainContent}>
-        {/* カテゴリ選択 (Radial Menu) */}
-        {/* 修正: Props名を定義に合わせる */}
         <RadialCategoryMenu 
           categories={categories}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
-
-        {/* Feedback Toast (Overlaid) */}
-        <FeedbackToast message={toastMessage} uniqueKey={toastKey} />
+        {/* ここにあった FeedbackToast を削除 */}
       </View>
 
       {/* Footer Area: Coins */}
       <View style={styles.footer}>
         <CoinList onPressCoin={handleAddCoin} />
       </View>
+
+      {/* Feedback Toast (ここに移動: 最前面に表示させるため) */}
+      <FeedbackToast message={toastMessage} uniqueKey={toastKey} />
     </View>
   );
 }
@@ -126,7 +123,6 @@ export default function MoneyInputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // 修正: COLORS.background -> Colors.light.background
     backgroundColor: Colors.light.background,
   },
   header: {
@@ -146,7 +142,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative', // For Toast positioning
+    position: 'relative',
+    zIndex: 1, // 追加: 背面のコンテンツとしての順序を明示
   },
   footer: {
     paddingBottom: 20,
