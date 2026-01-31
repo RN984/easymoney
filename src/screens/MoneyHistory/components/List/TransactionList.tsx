@@ -1,55 +1,98 @@
-// src/screens/MoneyHistory/components/TransactionList.tsx
+import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { Household } from '../../../../index';
-// インポート元を修正 (src/constantsを想定)
-import { DEFAULT_CATEGORIES as CATEGORIES } from '../../../../../constants/categories';
-import { Colors } from '../../../../../constants/theme';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 
-interface TransactionListProps {
+import { Colors } from '../../../../../constants/theme';
+import { Category, Household } from '../../../../index';
+import { deleteHousehold } from '../../../../services/transactionService';
+
+interface Props {
   transactions: Household[];
-  loading: boolean;
+  categories: Category[];
+  onRefresh: () => void;
+  onEdit: (item: Household) => void; // 編集リクエスト用コールバック
 }
 
-export const TransactionList: React.FC<TransactionListProps> = ({ transactions, loading }) => {
-  if (loading && transactions.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text>読み込み中...</Text>
-      </View>
-    );
-  }
+export const TransactionList: React.FC<Props> = ({ transactions, categories, onRefresh, onEdit }) => {
+  
+  const getCategory = (id: string) => categories.find(c => c.id === id);
 
-  if (transactions.length === 0) {
+  const handleDelete = async (id: string) => {
+    Alert.alert('削除', 'この記録を削除しますか？', [
+      { text: 'キャンセル', style: 'cancel' },
+      { 
+        text: '削除', 
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteHousehold(id);
+            onRefresh(); // リスト更新
+          } catch (e) {
+            Alert.alert('エラー', '削除に失敗しました');
+          }
+        }
+      }
+    ]);
+  };
+
+  const renderRightActions = (item: Household) => {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>データがありません</Text>
+      <View style={styles.actionContainer}>
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: Colors.light.secondary }]}
+          onPress={() => onEdit(item)}
+        >
+          <Ionicons name="create-outline" size={24} color="#fff" />
+          <Text style={styles.actionText}>編集</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: Colors.light.error }]}
+          onPress={() => handleDelete(item.id)}
+        >
+          <Ionicons name="trash-outline" size={24} color="#fff" />
+          <Text style={styles.actionText}>削除</Text>
+        </TouchableOpacity>
       </View>
     );
-  }
+  };
 
   const renderItem = ({ item }: { item: Household }) => {
-    // カテゴリIDで検索
-    const category = CATEGORIES.find(c => c.id === item.categoryId);
-    
-    const dateStr = item.createdAt.toLocaleDateString('ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const category = getCategory(item.categoryId);
+    const dateStr = format(item.createdAt, 'M/d(E) HH:mm', { locale: ja });
 
     return (
-      <View style={styles.itemContainer}>
-        <View style={[styles.iconPlaceholder, { backgroundColor: category?.color || '#ccc' }]}>
-          <Text style={styles.iconText}>{category?.name.charAt(0) || '?'}</Text>
+      <Swipeable renderRightActions={() => renderRightActions(item)}>
+        <View style={styles.itemContainer}>
+          {/* Category Icon & Color */}
+          <View style={[styles.iconContainer, { backgroundColor: category?.color || '#ccc' }]}>
+            <Ionicons name={(category?.icon as any) || 'help'} size={24} color="#fff" />
+          </View>
+
+          {/* Main Info */}
+          <View style={styles.infoContainer}>
+            <View style={styles.row}>
+              <Text style={styles.categoryName}>{category?.name || '不明'}</Text>
+              <Text style={styles.amount}>¥{item.totalAmount.toLocaleString()}</Text>
+            </View>
+            
+            <View style={styles.row}>
+              <Text style={styles.date}>{dateStr}</Text>
+              {/* 位置情報があれば表示 */}
+              {item.location && (
+                <View style={styles.locationContainer}>
+                  <Ionicons name="location-sharp" size={12} color={Colors.light.gray} />
+                  <Text style={styles.locationText}>保存済み</Text>
+                </View>
+              )}
+            </View>
+            {item.memo && <Text style={styles.memo} numberOfLines={1}>{item.memo}</Text>}
+          </View>
         </View>
-        <View style={styles.infoContainer}>
-          <Text style={styles.categoryName}>{category?.name || '不明なカテゴリ'}</Text>
-          <Text style={styles.dateText}>{dateStr}</Text>
-        </View>
-        <Text style={styles.amountText}>¥{item.totalAmount.toLocaleString()}</Text>
-      </View>
+      </Swipeable>
     );
   };
 
@@ -58,67 +101,76 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
       data={transactions}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 100 }}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  center: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 14,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
   itemContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    padding: 15,
     backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eee',
+    alignItems: 'center',
   },
-  iconPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  iconText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    marginRight: 15,
   },
   infoContainer: {
     flex: 1,
   },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.light.text,
   },
-  dateText: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  amountText: {
+  amount: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.light.text,
+  },
+  date: {
+    fontSize: 12,
+    color: Colors.light.gray,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 10,
+    color: Colors.light.gray,
+    marginLeft: 2,
+  },
+  memo: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    marginTop: 2,
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    width: 140,
+  },
+  actionButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionText: {
+    color: '#fff',
+    fontSize: 10,
+    marginTop: 4,
   },
 });

@@ -1,92 +1,76 @@
-// src/screens/MoneyHistory/index.tsx
-import React from 'react';
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Colors } from '../../../constants/theme';
-import { HamburgerMenu } from '../../components/HamburgerMenu';
+import { Category, Household } from '../../index';
+import { fetchCategories } from '../../services/masterService';
+import { getMonthlyTransactions } from '../../services/transactionService';
+import { EditModal } from './components/List/EditModal';
 import { TransactionList } from './components/List/TransactionList';
-import { MonthlyChart } from './components/MonthlyChart';
-import { useHistoryData } from './hooks/useHistoryData';
 
 export default function MoneyHistoryScreen() {
-  const { 
-    transactions, 
-    loading, 
-    currentDate, 
-    goToPreviousMonth, 
-    goToNextMonth 
-  } = useHistoryData();
+  const [transactions, setTransactions] = useState<Household[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Household | null>(null);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+
+  const loadData = async () => {
+    // 今月のデータを取得 (実際は月選択ロジックが必要)
+    const data = await getMonthlyTransactions(new Date());
+    setTransactions(data);
+    const cats = await fetchCategories();
+    setCategories(cats);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  const handleEdit = (item: Household) => {
+    setSelectedItem(item);
+    setEditModalVisible(true);
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <HamburgerMenu /> 
-        <View style={styles.monthSelector}>
-          <TouchableOpacity onPress={goToPreviousMonth} style={styles.arrowBtn}>
-            <Text style={styles.arrowText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月
-          </Text>
-          <TouchableOpacity onPress={goToNextMonth} style={styles.arrowBtn}>
-            <Text style={styles.arrowText}>→</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>履歴</Text>
       </View>
 
-      <View style={styles.container}>
-        <MonthlyChart transactions={transactions} currentDate={currentDate} />
-        
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>履歴一覧</Text>
-        </View>
-        
-        <TransactionList transactions={transactions} loading={loading} />
-      </View>
+      <TransactionList 
+        transactions={transactions} 
+        categories={categories}
+        onRefresh={loadData}
+        onEdit={handleEdit}
+      />
+
+      <EditModal 
+        visible={isEditModalVisible}
+        targetItem={selectedItem}
+        onClose={() => setEditModalVisible(false)}
+        onUpdated={loadData}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-  },
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     backgroundColor: Colors.light.background,
   },
-  monthSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  header: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginHorizontal: 16,
-  },
-  arrowBtn: {
-    padding: 8,
-  },
-  arrowText: {
     fontSize: 20,
-    color: Colors.light.primary,
-    fontWeight: 'bold',
-  },
-  listHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  listTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
     color: Colors.light.text,
   },
