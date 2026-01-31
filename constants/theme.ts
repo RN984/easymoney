@@ -17,6 +17,7 @@ export const Palette = {
   accent: '#DB8479',
   white: '#FFFFFF',
   surface: '#FFFFFF', // カードやモーダル等の背景用
+  gray: '#9CA3AF',    // 追加: 汎用的なグレー
 } as const;
 
 export const Colors = {
@@ -32,11 +33,10 @@ export const Colors = {
     secondary: Palette.secondary,
     accent: Palette.accent,
     surface: Palette.surface,
+    gray: Palette.gray,   // 追加
+    error: Palette.accent, // 追加: エラー色はAccent(赤系)を使用
   },
   dark: {
-    // 今回の要件ではダークモードの具体的な指定がないため、Lightモードのトーンを維持しつつ視認性を確保する設定にするか、
-    // あるいはデザインシステムが固定色の場合はLightと同じ値を割り当てることが一般的です。
-    // ここでは安全のためLightと同じ配色をベースにします。
     text: Palette.text,
     background: Palette.background,
     tint: Palette.primary,
@@ -47,5 +47,7 @@ export const Colors = {
     secondary: Palette.secondary,
     accent: Palette.accent,
     surface: Palette.surface,
+    gray: Palette.gray,   // 追加
+    error: Palette.accent, // 追加
   },
 };

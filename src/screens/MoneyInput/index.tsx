@@ -1,3 +1,4 @@
+// src/screens/MoneyInput/index.tsx
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -5,16 +6,16 @@ import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Coin, CoinValue, CreateHouseholdDTO, LocationData } from '../../index'; // index.tsからインポート
-import { createHousehold, addItemToHousehold } from '../../services/transactionService';
+import { CoinValue, CreateHouseholdDTO, LocationData } from '../../index';
 import { fetchCategories } from '../../services/masterService';
+import { createHousehold } from '../../services/transactionService';
 
 // Components
+import { Colors } from '../../../constants/theme'; // Colorsをインポート
 import { CoinList } from './components/Coin/CoinList';
 import { FeedbackToast } from './components/FeedbackToast';
 import { RadialCategoryMenu } from './components/RadialCategoryMenu';
 import { SegmentedProgressBar } from './components/SegmentedProgressBar';
-import { Colors } from '../../../constants/theme';
 
 export default function MoneyInputScreen() {
   const router = useRouter();
@@ -61,14 +62,6 @@ export default function MoneyInputScreen() {
     setToastMessage(`${categoryName}に +${coinVal.toLocaleString()}円`);
     setToastKey(prev => prev + 1);
 
-    // DB保存（非同期で実行し、UIをブロックしない）
-    // ※ 実際の運用では「確定」ボタンで保存するか、都度保存するかでロジックが異なりますが、
-    //   EasyMoneyの仕様「コインタップで即反映」に従い、親トランザクションの作成または追記を行います。
-    //   簡略化のため、ここでは「毎回新規トランザクション」として扱うか、
-    //   「直近のトランザクションに追記」するロジックが必要ですが、
-    //   今回は「1タップ = 1トランザクション」または「一時プールして保存」の基本形とします。
-    //   (要件に合わせて調整してください。ここでは即時保存の例を示します)
-
     try {
       const dto: CreateHouseholdDTO = {
         categoryId: selectedCategoryId,
@@ -76,7 +69,6 @@ export default function MoneyInputScreen() {
         createdAt: new Date(),
         location: location, // 位置情報を付与
       };
-      // ※実際は「直前の入力から一定時間内なら同じ親IDにaddItem」するなどのロジックを入れるとベター
       await createHousehold(dto); 
     } catch (e) {
       console.error(e);
@@ -88,12 +80,12 @@ export default function MoneyInputScreen() {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header Area */}
       <View style={styles.header}>
-         {/* 左上: 設定への導線（ハンバーガーアイコンなど） */}
+         {/* 左上: 設定への導線 */}
         <TouchableOpacity onPress={() => router.push('/settings')} style={styles.iconButton}>
           <Ionicons name="menu" size={28} color={Colors.light.text} />
         </TouchableOpacity>
 
-        {/* 右上: 履歴画面への遷移ボタン (新規追加) */}
+        {/* 右上: 履歴画面への遷移ボタン */}
         <TouchableOpacity onPress={() => router.push('/history')} style={styles.iconButton}>
           <Ionicons name="stats-chart" size={24} color={Colors.light.primary} />
         </TouchableOpacity>
@@ -101,16 +93,22 @@ export default function MoneyInputScreen() {
 
       {/* Progress Bar (予算消化率など) */}
       <View style={styles.progressContainer}>
-        <SegmentedProgressBar current={currentAmount} target={50000} /> 
+        {/* 修正: Props名を定義に合わせ、必須項目を追加 */}
+        <SegmentedProgressBar 
+          currentTotal={0} // 一旦0またはDBから取得した値をセット
+          pendingAmount={currentAmount}
+          budget={50000} 
+        /> 
       </View>
 
       {/* Main Interaction Area */}
       <View style={styles.mainContent}>
         {/* カテゴリ選択 (Radial Menu) */}
+        {/* 修正: Props名を定義に合わせる */}
         <RadialCategoryMenu 
           categories={categories}
-          selectedId={selectedCategoryId}
-          onSelect={setSelectedCategoryId}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
         />
 
         {/* Feedback Toast (Overlaid) */}
@@ -128,7 +126,8 @@ export default function MoneyInputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    // 修正: COLORS.background -> Colors.light.background
+    backgroundColor: Colors.light.background,
   },
   header: {
     flexDirection: 'row',
