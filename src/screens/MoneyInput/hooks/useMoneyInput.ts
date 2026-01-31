@@ -1,7 +1,7 @@
-import * as Location from 'expo-location'; // 追加
+import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { Category, CoinValue, CreateHouseholdDTO } from '../../../index';
+import { Category, CoinValue, CreateHouseholdDTO } from '../../../index'; // 必要に応じてパス確認
 import { fetchCategories } from '../../../services/masterService';
 import { createHousehold, getMonthlyTransactions } from '../../../services/transactionService';
 
@@ -13,12 +13,16 @@ export interface FloatingCoinData {
   y: number;
 }
 
-export const useMoneyInput = () => {
+// 引数を受け取れるように修正
+export const useMoneyInput = (initialCategoryId: string) => {
   const [amount, setAmount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  // 初期値を引数から設定
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId);
   const [monthlyTotal, setMonthlyTotal] = useState(0);
   const [toast, setToast] = useState({ visible: false, message: '', color: '' });
+  // 保存中の状態を追加
+  const [isSaving, setIsSaving] = useState(false);
   
   // Floating Coin Animation State
   const [floatingCoins, setFloatingCoins] = useState<FloatingCoinData[]>([]);
@@ -30,7 +34,8 @@ export const useMoneyInput = () => {
   const loadData = async () => {
     const cats = await fetchCategories();
     setCategories(cats);
-    if (cats.length > 0) {
+    // カテゴリが取得でき、かつ現在の選択が空なら先頭を選択
+    if (cats.length > 0 && !selectedCategoryId) {
       setSelectedCategoryId(cats[0].id);
     }
     await fetchMonthlyTotal();
@@ -57,15 +62,15 @@ export const useMoneyInput = () => {
     setSelectedCategoryId(id);
   };
 
-  // 修正: 座標を受け取るように変更
   const handlePressCoin = (value: CoinValue, x: number, y: number) => {
     setAmount((prev) => prev + value);
     
-    // アニメーション用コインを追加
     const id = Math.random().toString(36).substr(2, 9);
     setFloatingCoins(prev => [...prev, { id, value, x, y }]);
 
     const category = categories.find(c => c.id === selectedCategoryId);
+    // categoriesが空の場合はデフォルト等から探す必要があるかもしれませんが、
+    // ここでは取得済みと仮定、またはUI側で制御
     if (category) {
       showToast(`${category.name}に +${value.toLocaleString()}円`, category.color);
     }
@@ -79,7 +84,6 @@ export const useMoneyInput = () => {
     setAmount(0);
   };
 
-  // 現在地を取得するヘルパー関数
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -104,16 +108,16 @@ export const useMoneyInput = () => {
   const handleSubmit = async () => {
     if (amount === 0) return;
 
+    setIsSaving(true); // 保存開始
     try {
-      // 位置情報の取得 (失敗しても保存は続行)
       const locationData = await getCurrentLocation();
 
       const newTransaction: CreateHouseholdDTO = {
         categoryId: selectedCategoryId,
-        transactionName: '', // 必要に応じて入力させるが、Input画面では省略
+        transactionName: '',
         totalAmount: amount,
         createdAt: new Date(),
-        location: locationData, // 取得した位置情報をセット
+        location: locationData,
       };
 
       await createHousehold(newTransaction);
@@ -125,6 +129,8 @@ export const useMoneyInput = () => {
     } catch (error) {
       Alert.alert('エラー', '保存に失敗しました');
       console.error(error);
+    } finally {
+      setIsSaving(false); // 保存終了
     }
   };
 
@@ -132,12 +138,14 @@ export const useMoneyInput = () => {
     amount,
     categories,
     selectedCategoryId,
+    setSelectedCategoryId, // 追加
     monthlyTotal,
     toast,
-    floatingCoins, // 追加
+    isSaving, // 追加
+    floatingCoins,
     handleSelectCategory,
-    handlePressCoin, // 名称変更 (handleDropCoin -> handlePressCoin)
-    removeFloatingCoin, // 追加
+    handlePressCoin,
+    removeFloatingCoin,
     handleReset,
     handleSubmit,
     refreshTotal: fetchMonthlyTotal,

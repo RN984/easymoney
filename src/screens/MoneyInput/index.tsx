@@ -25,7 +25,7 @@ export default function MoneyInputScreen() {
     removeFloatingCoin,
     handleReset,
     handleSubmit
-  } = useMoneyInput();
+  } = useMoneyInput('');
 
   return (
     <SafeAreaView style={styles.container}>

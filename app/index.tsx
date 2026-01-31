@@ -1,12 +1,11 @@
 import React from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_CATEGORIES } from '../constants/categories'; // パス調整
-import { Palette } from '../constants/theme'; // パス調整
+import { DEFAULT_CATEGORIES } from '../constants/categories';
+import { Palette } from '../constants/theme';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
-// ▼ 追加: ProgressBar のインポート
 import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/SegmentedProgressBar';
 import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
 
@@ -15,8 +14,9 @@ export default function MoneyInput() {
     selectedCategoryId,
     setSelectedCategoryId,
     isSaving,
+    amount, // 追加: バーに表示するため
     floatingCoins,
-    monthlyTransactions, // ▼ 追加: フックからデータを受け取る
+    monthlyTotal, // 修正: transactionsではなくtotalを受け取る
     handlePressCoin,
     removeFloatingCoin,
   } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
@@ -32,10 +32,10 @@ export default function MoneyInput() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* ▼ 追加: ProgressBar を配置 */}
+      {/* 修正: ProgressBar のPropsを定義に合わせて変更 */}
       <SegmentedProgressBar 
-        categories={DEFAULT_CATEGORIES}
-        transactions={monthlyTransactions || []} 
+        currentTotal={monthlyTotal}
+        pendingAmount={amount}
       />
 
       <View style={styles.categoryContainer}>

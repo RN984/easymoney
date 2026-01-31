@@ -39,7 +39,13 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "家計簿の記録場所を保存するために位置情報を使用します。"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
