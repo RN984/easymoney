@@ -74,9 +74,11 @@ export const useHistoryScreen = () => {
   }, [loadData]);
 
   // 更新処理
-  const handleUpdate = useCallback(async (data: Household) => {
+const handleUpdate = useCallback(async (data: Household) => {
     try {
-      await updateHousehold(data);
+      // 修正: 第1引数にid、第2引数に更新データを渡す
+      const { id, ...updateData } = data;
+      await updateHousehold(id, updateData); 
       await loadData();
       setIsEditModalVisible(false);
     } catch (e) {

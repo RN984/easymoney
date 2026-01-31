@@ -1,27 +1,64 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
-import { DEFAULT_CATEGORIES } from '../src/constants/categories'; // ※注意: CategoriesはHookから取得した方が良いですが、ここでは既存維持
 import { Palette } from '../src/constants/theme';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
 import { RadialCategoryMenu } from '../src/screens/MoneyInput/components/RadialCategoryMenu';
 import { SegmentedProgressBar } from '../src/screens/MoneyInput/components/SegmentedProgressBar';
 import { useMoneyInput } from '../src/screens/MoneyInput/hooks/useMoneyInput';
+// 修正1: CoinValue型をインポート (パスはプロジェクトに合わせて修正してください)
+import { CoinValue } from '../src/index';
+
+// 修正2: valueの型を number から CoinValue に変更
+interface FloatingCoinData {
+  id: string;
+  value: CoinValue; 
+  x: number;
+  y: number;
+}
 
 export default function MoneyInput() {
+  const [floatingCoins, setFloatingCoins] = useState<FloatingCoinData[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
   const {
-    categories, // Hookから取得したカテゴリを使用（マスター設定反映のため）
+    categories,
     selectedCategoryId,
-    setSelectedCategoryId,
-    isSaving,
-    amount, 
-    floatingCoins,
-    transactions, // 修正: transactionsを受け取る
-    budget,       // 修正: budgetを受け取る
-    handlePressCoin,
-    removeFloatingCoin,
-  } = useMoneyInput(DEFAULT_CATEGORIES[0].id);
+    handleSelectCategory,
+    currentAmount,
+    transactions,
+    budget,
+    handleAddCoin,
+  } = useMoneyInput();
+
+  // 修正3: 引数の定義を変更
+  // ({ x, y }) ではなく、x, y を個別の引数として受け取り、valueの型をCoinValueにする
+  const handlePressCoin = useCallback(async (value: CoinValue, x: number, y: number) => {
+    // A. アニメーション用のコインを追加
+    const newCoin: FloatingCoinData = {
+      id: Date.now().toString(),
+      value, // 型が一致するためOK
+      x,
+      y,
+    };
+    setFloatingCoins((prev) => [...prev, newCoin]);
+
+    // B. データ保存処理
+    setIsSaving(true);
+    try {
+      // handleAddCoin も CoinValue型 を期待しているのでOK
+      await handleAddCoin(value);
+    } catch (error) {
+      console.error('Coin add failed', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [handleAddCoin]);
+
+  const removeFloatingCoin = useCallback((id: string) => {
+    setFloatingCoins((prev) => prev.filter((c) => c.id !== id));
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,32 +70,31 @@ export default function MoneyInput() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* 修正: ProgressBar に正しいPropsを渡す */}
       <SegmentedProgressBar 
         categories={categories}
         transactions={transactions}
         budget={budget}
-        pendingAmount={amount}
+        pendingAmount={currentAmount}
       />
 
       <View style={styles.categoryContainer}>
         <RadialCategoryMenu
-          categories={categories} // ここもHookからのcategoriesにすると設定変更が反映されます
+          categories={categories}
           selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
+          onSelectCategory={handleSelectCategory}
         />
       </View>
 
       <View style={styles.coinContainer}>
+        {/* シグネチャが (value: CoinValue, x: number, y: number) => void に一致したためエラー解消 */}
         <CoinList onPressCoin={handlePressCoin} />
       </View>
 
-      {/* ... (残りは変更なし) */}
       {floatingCoins.map((coin) => (
         <FloatingCoin
           key={coin.id}
           id={coin.id}
-          value={coin.value}
+          value={coin.value} // CoinValue型なのでOK
           x={coin.x}
           y={coin.y}
           onAnimationComplete={removeFloatingCoin}
@@ -74,7 +110,6 @@ export default function MoneyInput() {
   );
 }
 
-// ... styles は変更なし
 const styles = StyleSheet.create({
   container: {
     flex: 1,

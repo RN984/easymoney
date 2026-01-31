@@ -1,15 +1,13 @@
-// src/screens/MoneyHistory/index.tsx
-import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../../constants/theme';
+// パス修正: 階層を確認 (src/constants/theme.ts)
+import { Colors } from '../../constants/theme';
 
 // Components
-import { DateNavigator } from './components/DateNavigator';
-import { EditModal } from './components/List/EditModal'; // 既存のパスに合わせてください
-import { TransactionList } from './components/List/TransactionList'; // 既存のパス
-import { MonthlyChart } from './components/MonthlyChart'; // 既存のパス
+import { DateNavigator } from './components/Chart/DateNavigator'; // パス修正
+import { EditModal } from './components/List/EditModal';
+import { TransactionList } from './components/List/TransactionList';
 import { SummaryHeader } from './components/SummaryHeader';
 
 // Hooks
@@ -17,9 +15,6 @@ import { useHistoryScreen } from './hooks/useHistoryScreen';
 
 export default function MoneyHistoryScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-
-  // Logic Extraction
   const {
     currentDate,
     transactions,
@@ -37,43 +32,25 @@ export default function MoneyHistoryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      
-      {/* 1. Header (共通ヘッダーまたは戻るボタン) */}
-      <View style={styles.header}>
-        {/* 必要であれば HeaderArea を配置、あるいはシンプルなタイトル */}
-      </View>
-
-      {/* 2. Date Navigation */}
       <DateNavigator 
         currentDate={currentDate} 
         onChangeMonth={handleChangeMonth} 
       />
-
-      {/* 3. Summary Cards */}
       <SummaryHeader summary={summary} />
 
-      {/* 4. Content (List with Chart Header) */}
       <TransactionList
-        data={transactions}
-        onItemPress={openEditModal}
+        transactions={transactions} // 修正: data -> transactions
+        categories={[]} // 必要に応じて取得したカテゴリを渡す
         onRefresh={refreshData}
-        refreshing={isLoading}
-        // ListHeaderComponent としてチャートを渡すとスクロールがスムーズになります
-        ListHeaderComponent={
-          <View style={styles.chartContainer}>
-             <MonthlyChart data={transactions} />
-          </View>
-        }
+        onEdit={openEditModal} // 修正: onItemPress -> onEdit
       />
 
-      {/* 5. Edit Modal */}
       {selectedTransaction && (
         <EditModal
           visible={isEditModalVisible}
-          transaction={selectedTransaction}
+          targetItem={selectedTransaction} // 修正: transaction -> targetItem
           onClose={closeEditModal}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
+          onUpdated={refreshData} // 修正: onUpdate -> onUpdated
         />
       )}
     </View>
