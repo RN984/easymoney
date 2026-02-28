@@ -1,9 +1,11 @@
 // src/screens/MoneyInput/components/RadialCategoryMenu.tsx
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
-import { Category } from '../../../index';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Svg, { Circle, G, Path } from 'react-native-svg';
+import { DEFAULT_CATEGORIES } from '../../../constants/categories';
+import { Category, CategoryType } from '../../../index';
 
 /**
  * Props定義
@@ -11,13 +13,15 @@ import { Category } from '../../../index';
 interface RadialCategoryMenuProps {
   categories: Category[];
   selectedCategoryId: string | null;
+  inputType: CategoryType;
+  onToggleInputType: () => void;
   onSelectCategory: (categoryId: string) => void;
   radius?: number; // 外径の半径
 }
 
 // デザイン定数
 const { width } = Dimensions.get('window');
-const CONTAINER_SIZE = width * 0.9;
+const CONTAINER_SIZE = width * 0.81;
 const DEFAULT_RADIUS = CONTAINER_SIZE / 2;
 
 // ★変更点1: 穴の比率を小さくしました (0.55 -> 0.3)
@@ -37,6 +41,22 @@ const COLORS = {
  * 座標計算用の型
  */
 type Point = { x: number; y: number };
+
+const getIconNameForCategory = (category: Category): keyof typeof Ionicons.glyphMap => {
+  // 1) MoneyInputで取得したiconを優先
+  if (category.icon && Object.prototype.hasOwnProperty.call(Ionicons.glyphMap, category.icon)) {
+    return category.icon as keyof typeof Ionicons.glyphMap;
+  }
+
+  // 2) MoneyHistoryで使っているデフォルトカテゴリ定義をfallbackに使う
+  const defaultCategory = DEFAULT_CATEGORIES.find((c) => c.id === category.id);
+  if (defaultCategory?.icon && Object.prototype.hasOwnProperty.call(Ionicons.glyphMap, defaultCategory.icon)) {
+    return defaultCategory.icon as keyof typeof Ionicons.glyphMap;
+  }
+
+  // 3) 最終fallback
+  return 'cash';
+};
 
 /**
  * 極座標から直交座標へ変換
@@ -104,24 +124,39 @@ const createArcStrokePath = (
 export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
   categories,
   selectedCategoryId,
+  inputType,
+  onToggleInputType,
   onSelectCategory,
   radius = DEFAULT_RADIUS,
 }) => {
   const innerRadius = radius * INNER_RADIUS_RATIO;
   const cx = radius; // 中心のX座標
   const cy = radius; // 中心のY座標
-  const angleStep = 360 / categories.length; // 1カテゴリあたりの角度
+
+  // order順でソートされたカテゴリ一覧
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const orderA = a.order ?? 0;
+      const orderB = b.order ?? 0;
+      return orderA - orderB;
+    });
+  }, [categories]);
+
+  const angleStep = 360 / sortedCategories.length; // 1カテゴリあたりの角度
 
   // 描画データの生成
   const sectors = useMemo(() => {
-    return categories.map((category, index) => {
-      const startAngle = index * angleStep;
-      const endAngle = (index + 1) * angleStep;
-      
+    // カテゴリーが1つの場合は360度ではなく359.99度にする（完全な円を避ける）
+    const adjustedAngleStep = sortedCategories.length === 1 ? 359.99 : angleStep;
+
+    return sortedCategories.map((category, index) => {
+      const startAngle = index * adjustedAngleStep;
+      const endAngle = (index + 1) * adjustedAngleStep;
+
       // テキスト配置用の角度
-      const midAngle = startAngle + angleStep / 2;
+      const midAngle = startAngle + adjustedAngleStep / 2;
       // テキスト配置位置
-      const labelRadius = innerRadius + (radius - innerRadius) * 0.55; 
+      const labelRadius = innerRadius + (radius - innerRadius) * 0.55;
       const labelPos = polarToCartesian(cx, cy, labelRadius, midAngle);
 
       const isSelected = selectedCategoryId === category.id;
@@ -136,7 +171,7 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
         strokePath: createArcStrokePath(cx, cy, radius - 4, startAngle, endAngle),
       };
     });
-  }, [categories, selectedCategoryId, radius, innerRadius, cx, cy, angleStep]);
+  }, [sortedCategories, selectedCategoryId, radius, innerRadius, cx, cy, angleStep]);
 
   return (
     <View style={[styles.container, { width: radius * 2, height: radius * 2 }]}>
@@ -178,22 +213,45 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
                 strokeLinecap="round"
               />
             )}
-
-            {/* カテゴリ名 */}
-            <SvgText
-              x={sector.labelPos.x}
-              y={sector.labelPos.y}
-              fill={sector.isSelected ? COLORS.textActive : COLORS.textInactive}
-              fontSize="14"
-              fontWeight={sector.isSelected ? "bold" : "normal"}
-              textAnchor="middle"
-              alignmentBaseline="middle"
-            >
-              {sector.name}
-            </SvgText>
           </G>
         ))}
       </Svg>
+
+      {/* アイコン + カテゴリ名（SVGの上にオーバーレイ表示） */}
+      <View pointerEvents="none" style={styles.labelsLayer}>
+        {sectors.map((sector) => (
+          <View
+            key={`label-${sector.id}`}
+            style={[
+              styles.labelItem,
+              {
+                left: sector.labelPos.x,
+                top: sector.labelPos.y,
+              },
+            ]}
+          >
+            <View style={[styles.iconCircle, { backgroundColor: sector.color || '#ccc' }]}>
+              <Ionicons
+                name={getIconNameForCategory(sector)}
+                size={14}
+                color="#fff"
+              />
+            </View>
+            <Text
+              style={[
+                styles.labelText,
+                {
+                  color: sector.isSelected ? COLORS.textActive : COLORS.textInactive,
+                  fontWeight: sector.isSelected ? '700' : '400',
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {sector.name}
+            </Text>
+          </View>
+        ))}
+      </View>
 
       {/* 中央の装飾 */}
       <View style={[styles.centerContent, { 
@@ -202,7 +260,30 @@ export const RadialCategoryMenu: React.FC<RadialCategoryMenuProps> = ({
         left: cx - innerRadius,
         top: cy - innerRadius,
       }]}>
-         {/* 必要であればここに合計金額などを表示 */}
+        <TouchableOpacity style={styles.centerButton} onPress={onToggleInputType} activeOpacity={0.8}>
+          {/* 財布アイコン（上層） */}
+          <Ionicons
+            name="wallet-outline"
+            size={40}
+            color="#666"
+            style={[styles.walletIcon, { transform: [{ translateX: -7 }] }]}
+          />
+          {/* 矢印アイコン（下層） */}
+          <Ionicons
+            name="arrow-down-outline"
+            size={26}
+            color={inputType === 'expense' ? '#E53935' : '#2196F3'}
+            style={[
+              styles.arrowIcon,
+              {
+                transform: [
+                  { translateX: 20 },
+                  { rotate: inputType === 'expense' ? '-90deg' : '90deg' }
+                ],
+              },
+            ]}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -225,10 +306,49 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
+  labelsLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    elevation: 20,
+  },
+  labelItem: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateX: -28 }, { translateY: -20 }],
+    width: 56,
+  },
+  iconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  labelText: {
+    marginTop: 4,
+    fontSize: 11,
+    textAlign: 'center',
+  },
   centerContent: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 999,
-  }
+  },
+  centerButton: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletIcon: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  arrowIcon: {
+    position: 'absolute',
+    zIndex: 1,
+  },
 });

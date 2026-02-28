@@ -20,7 +20,7 @@ export const SettingSection: React.FC<SettingSectionProps> = ({ title, children 
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   title: {
     fontSize: 14,

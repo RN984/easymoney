@@ -1,11 +1,13 @@
 // src/screens/Settings/index.tsx
-import { useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/theme';
 
 // Components
+import CategoryAccordion from './components/Category/Accordion';
+import CoinAccordion from './components/Coin/CoinAccordion';
+import SalaryAccordion from './components/Salary/SalaryAccordion';
 import { SettingItem } from './components/SettingItem';
 import { SettingSection } from './components/SettingSection';
 
@@ -13,7 +15,6 @@ import { SettingSection } from './components/SettingSection';
 import { useSettings } from './hooks/useSettings';
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isLoading, handleExportCSV, handleResetDatabase } = useSettings();
 
@@ -30,13 +31,9 @@ export default function SettingsScreen() {
         
         {/* Section 1: General Settings */}
         <SettingSection title="一般">
-          <SettingItem
-            icon="pricetag"
-            label="カテゴリ設定"
-            onPress={() => router.push('./components/settings/categories')} // パスは適宜調整
-          />
-          {/* 必要に応じて予算設定なども追加 */}
-          {/* <SettingItem icon="wallet" label="予算設定" onPress={() => {}} /> */}
+          <SalaryAccordion />
+          <CategoryAccordion />
+          <CoinAccordion />
         </SettingSection>
 
         {/* Section 2: Data Management */}
@@ -62,7 +59,7 @@ export default function SettingsScreen() {
             icon="information-circle-outline"
             label="バージョン"
             value="1.0.0"
-            onPress={() => {}} // About画面などへ
+            onPress={() => {}}
           />
         </SettingSection>
 
@@ -74,7 +71,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background, // 背景色をテーマに合わせる
+    backgroundColor: Colors.light.background,
   },
   scrollContent: {
     paddingVertical: 20,

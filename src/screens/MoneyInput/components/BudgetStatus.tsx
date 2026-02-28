@@ -8,14 +8,12 @@ interface BudgetStatusProps {
   categories: Category[];
   transactions: Household[];
   budget: number;
-  currentAmount: number;
 }
 
 export const BudgetStatus: React.FC<BudgetStatusProps> = ({
   categories,
   transactions,
   budget,
-  currentAmount,
 }) => {
   return (
     <View style={styles.container}>
@@ -23,7 +21,6 @@ export const BudgetStatus: React.FC<BudgetStatusProps> = ({
         categories={categories}
         transactions={transactions}
         budget={budget}
-        pendingAmount={currentAmount}
       /> 
     </View>
   );

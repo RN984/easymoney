@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   GestureResponderEvent,
@@ -8,17 +9,17 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { CoinValue } from '../../../../index';
+import { Colors } from '../../../../constants/theme';
+import { CoinSettings, CoinValue } from '../../../../index';
 
 interface CoinListProps {
-  // ★変更: アニメーション用に座標(x, y)も渡すようにシグネチャを変更
-  onPressCoin: (value: CoinValue, x: number, y: number) => void;
+  onPressCoin: (value: number, x: number, y: number) => void;
+  onAddPress: () => void;
+  coinSettings: CoinSettings;
 }
 
-// 金額リスト
 const COINS: CoinValue[] = [10000, 5000, 1000, 500, 100, 50, 10];
 
-// 画像のパスをマッピング
 const COIN_IMAGES: Record<number, ImageSourcePropType> = {
   10000: require('../../../../../assets/images/money/10,000.webp'),
   5000:  require('../../../../../assets/images/money/5,000.webp'),
@@ -29,35 +30,46 @@ const COIN_IMAGES: Record<number, ImageSourcePropType> = {
   10:    require('../../../../../assets/images/money/10.webp'),
 };
 
-export const CoinList: React.FC<CoinListProps> = ({ onPressCoin }) => {
-  
-  // ★追加: タップイベントから座標を取得して親へ渡すハンドラ
-  const handlePress = (event: GestureResponderEvent, value: CoinValue) => {
+export const CoinList: React.FC<CoinListProps> = ({ onPressCoin, onAddPress, coinSettings }) => {
+
+  const handlePress = (event: GestureResponderEvent, value: number) => {
     const { pageX, pageY } = event.nativeEvent;
     onPressCoin(value, pageX, pageY);
   };
 
+  const handleAddPress = () => {
+    if (typeof onAddPress === 'function') {
+      onAddPress();
+    } else {
+      console.error('onAddPress is not a function:', onAddPress);
+    }
+  };
+
+  const hiddenCoins = coinSettings?.hiddenCoins ?? [];
+  const customCoins = coinSettings?.customCoins ?? [];
+  const visibleCoins = COINS.filter((v) => !hiddenCoins.includes(v));
+  const sortedCustomCoins = [...customCoins].sort((a, b) => a.order - b.order);
+
   return (
     <View style={styles.container}>
-      {COINS.map((value) => {
+      {/* デフォルトコイン */}
+      {visibleCoins.map((value) => {
         const imageSource = COIN_IMAGES[value];
 
         return (
           <TouchableOpacity
             key={value}
             style={styles.coinButton}
-            // ★変更: handlePressを経由させる
             onPress={(e) => handlePress(e, value)}
             activeOpacity={0.7}
           >
             {imageSource ? (
-              <Image 
-                source={imageSource} 
-                style={styles.coinImage} 
-                resizeMode="contain" 
+              <Image
+                source={imageSource}
+                style={styles.coinImage}
+                resizeMode="contain"
               />
             ) : (
-              // 画像がない場合のフォールバックデザイン
               <View style={[styles.coinCircleFallback, getCoinStyle(value)]}>
                 <Text style={styles.coinText}>{value.toLocaleString()}</Text>
               </View>
@@ -65,11 +77,40 @@ export const CoinList: React.FC<CoinListProps> = ({ onPressCoin }) => {
           </TouchableOpacity>
         );
       })}
+
+      {/* カスタムコイン */}
+      {sortedCustomCoins.map((coin) => (
+        <TouchableOpacity
+          key={coin.id}
+          style={styles.coinButton}
+          onPress={(e) => handlePress(e, coin.amount)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.customCoinWrapper}>
+            <View style={[styles.customCoinCircle, { backgroundColor: coin.color }]}>
+              <Text style={styles.customCoinName} numberOfLines={1}>{coin.name}</Text>
+            </View>
+            {coin.memo ? (
+              <Text style={styles.customCoinMemo} numberOfLines={1}>{coin.memo}</Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      ))}
+
+      {/* 追加ボタン（コインリスト最後尾） */}
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={handleAddPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.addButtonCircle}>
+          <Ionicons name="pencil" size={32} color={Colors.light.primary} />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 };
 
-// 画像がない場合のフォールバック用スタイル
 const getCoinStyle = (value: number) => {
   if (value >= 1000) return { backgroundColor: '#E8D5B5', borderColor: '#8E7348' };
   if (value >= 100) return { backgroundColor: '#E0E0E0', borderColor: '#9E9E9E' };
@@ -82,11 +123,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 16,
-    padding: 16,
+    gap: 12,
+    padding: 12,
   },
   coinButton: {
-    margin: 4,
+    margin: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -94,13 +135,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   coinImage: {
-    width: 70,
-    height: 70,
+    width: 63,
+    height: 63,
   },
   coinCircleFallback: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -109,5 +150,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  customCoinWrapper: {
+    alignItems: 'center',
+    width: 63,
+  },
+  customCoinCircle: {
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  customCoinName: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  customCoinMemo: {
+    fontSize: 9,
+    color: '#999',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  addButton: {
+    margin: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addButtonCircle: {
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
+    borderWidth: 2,
+    borderColor: Colors.light.primary,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -1,18 +1,22 @@
 // src/screens/MoneyInput/components/CategorySelection.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Category } from '../../../../src/index';
+import { Category, CategoryType } from '../../../../src/index';
 import { RadialCategoryMenu } from '../components/RadialCategoryMenu';
 
 interface CategorySelectionProps {
   categories: Category[];
   selectedCategoryId: string;
+  inputType: CategoryType;
+  onToggleInputType: () => void;
   onSelectCategory: (id: string) => void;
 }
 
 export const CategorySelection: React.FC<CategorySelectionProps> = ({
   categories,
   selectedCategoryId,
+  inputType,
+  onToggleInputType,
   onSelectCategory,
 }) => {
   return (
@@ -20,6 +24,8 @@ export const CategorySelection: React.FC<CategorySelectionProps> = ({
       <RadialCategoryMenu 
         categories={categories}
         selectedCategoryId={selectedCategoryId}
+        inputType={inputType}
+        onToggleInputType={onToggleInputType}
         onSelectCategory={onSelectCategory}
       />
     </View>

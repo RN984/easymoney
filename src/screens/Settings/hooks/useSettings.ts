@@ -1,13 +1,36 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 // import { resetDatabase } from '../../../database/db'; 
-import { fetchCategories } from '../../../services/masterService';
+import { fetchBaseSalary, fetchCategories, fetchSalaryDay, updateBaseSalary, updateSalaryDay } from '../../../services/masterService';
 import { getMonthlyTransactions } from '../../../services/transactionService';
 
+// salaryDay: 0 = 月末, 1-28 = カスタム日付
 export const useSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [baseSalary, setBaseSalary] = useState<number>(0);
+  const [salaryDay, setSalaryDay] = useState<number>(1);
+
+  // 初回ロードで基本給を取得
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [s, day] = await Promise.all([
+          fetchBaseSalary(),
+          fetchSalaryDay(),
+        ]);
+        if (mounted) {
+          setBaseSalary(s);
+          setSalaryDay(day);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // CSVエクスポート処理
   const handleExportCSV = useCallback(async () => {
@@ -68,9 +91,36 @@ export const useSettings = () => {
     );
   }, []);
 
+  const handleUpdateBaseSalary = useCallback(async (value: number) => {
+    setIsLoading(true);
+    try {
+      await updateBaseSalary(value);
+      setBaseSalary(value);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('エラー', '基本給の保存に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleUpdateSalaryDay = useCallback(async (day: number) => {
+    try {
+      await updateSalaryDay(day);
+      setSalaryDay(day);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('エラー', '給料日の保存に失敗しました');
+    }
+  }, []);
+
   return {
     isLoading,
     handleExportCSV,
     handleResetDatabase,
+    baseSalary,
+    salaryDay,
+    handleUpdateBaseSalary,
+    handleUpdateSalaryDay,
   };
 };

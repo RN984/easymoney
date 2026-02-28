@@ -46,13 +46,6 @@ export default function RootLayout() {
             headerShown: true
           }} 
         />
-        <Stack.Screen 
-          name="debug-test" 
-          options={{ 
-            title: '接続テスト',
-            headerShown: true
-          }} 
-        />
       </Stack>
       </GestureHandlerRootView>
   );

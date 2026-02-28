@@ -16,11 +16,16 @@ export interface LocationData {
 // ==========================================
 // M_カテゴリ (Master Table)
 // ==========================================
+export type CategoryType = 'income' | 'expense';
+
 export interface Category {
-  id: string; 
-  name: string; 
+  id: string;
+  name: string;
   color: string;
   icon: string;
+  type: CategoryType;
+  showInInput?: boolean; // MoneyInputの選択画面に表示するかどうか（デフォルト: true）
+  order?: number; // カテゴリ設定での表示順序
 }
 
 // ==========================================
@@ -31,6 +36,20 @@ export type CoinValue = 1 | 5 | 10 | 50 | 100 | 500 | 1000 | 5000 | 10000;
 export interface Coin {
   id: string;
   coin: CoinValue;
+}
+
+export interface CustomCoin {
+  id: string;
+  name: string;       // 表示名（最大6文字）
+  amount: number;      // 固定金額
+  color: string;       // コインの色
+  memo?: string;       // メモ（最大20文字）コインの下に表示
+  order: number;       // 並び順
+}
+
+export interface CoinSettings {
+  hiddenCoins: CoinValue[];  // 非表示にするデフォルトコインの値リスト
+  customCoins: CustomCoin[]; // カスタムコイン（最大2個）
 }
 
 // ==========================================
@@ -68,4 +87,4 @@ export type CreateHouseholdItemDTO = Omit<HouseholdItem, 'id'>;
 /**
  * 更新時に必要なデータ型 (Partial)
  */
-export type UpdateHouseholdDTO = Partial<Omit<Household, 'id' | 'createdAt'>>;
+export type UpdateHouseholdDTO = Partial<Omit<Household, 'id'>>;

@@ -106,11 +106,22 @@ export const createHousehold = async (data: CreateHouseholdDTO): Promise<Househo
  */
 export const updateHousehold = async (id: string, data: UpdateHouseholdDTO): Promise<void> => {
   try {
-    const docRef = doc(db, 'households', id).withConverter(householdConverter);
-    // Firestore の updateDoc は Partial<DocumentData> を受け取るため、型安全に更新可能
-    // ただし converter を通す場合、updateDoc の挙動に注意が必要ですが、
-    // ここでは単純なフィールド更新として扱います。
-    await updateDoc(docRef, data as any); 
+    const docRef = doc(db, 'households', id);
+    
+    // 更新用のデータを作成（Firestoreに送れない undefined を除去）
+    const updateData: any = {};
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
+    });
+    
+    // createdAt が Date の場合は Timestamp に変換
+    if (updateData.createdAt instanceof Date) {
+      updateData.createdAt = Timestamp.fromDate(updateData.createdAt);
+    }
+    
+    await updateDoc(docRef, updateData);
   } catch (error) {
     console.error(`Error updating household ${id}:`, error);
     throw new Error('データの更新に失敗しました。');

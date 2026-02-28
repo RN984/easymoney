@@ -1,7 +1,7 @@
 // src/screens/MoneyHistory/components/SummaryHeader.tsx
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../../../src/constants/theme';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../../constants/theme';
 
 interface SummaryHeaderProps {
   summary: {
@@ -9,24 +9,39 @@ interface SummaryHeaderProps {
     expense: number;
     total: number;
   };
+  onIncomePress?: () => void;
+  onExpensePress?: () => void;
+  onTotalPress?: () => void;
 }
 
-export const SummaryHeader: React.FC<SummaryHeaderProps> = ({ summary }) => {
+export const SummaryHeader: React.FC<SummaryHeaderProps> = ({ summary, onIncomePress, onExpensePress, onTotalPress }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={onIncomePress} activeOpacity={0.7}>
+        <Text style={styles.label}>収入</Text>
+        <Text style={[styles.amount, { color: Colors.light.primary }]}>
+          ¥{summary.income.toLocaleString()}
+        </Text>
+      </TouchableOpacity>
+      <View style={styles.divider} />
+      <TouchableOpacity style={styles.item} onPress={onExpensePress} activeOpacity={0.7}>
         <Text style={styles.label}>支出</Text>
         <Text style={[styles.amount, { color: Colors.light.accent }]}>
           ¥{summary.expense.toLocaleString()}
         </Text>
-      </View>
-      <View style={[styles.divider]} />
-      <View style={styles.item}>
-        <Text style={styles.label}>合計</Text>
-        <Text style={[styles.amount, { color: Colors.light.text }]}>
-          ¥{summary.total.toLocaleString()}
+      </TouchableOpacity>
+      <View style={styles.divider} />
+      <TouchableOpacity style={styles.item} onPress={onTotalPress} activeOpacity={0.7}>
+        <Text style={styles.label}>収支</Text>
+        <Text
+          style={[
+            styles.amount,
+            { color: summary.income - summary.expense >= 0 ? Colors.light.primary : Colors.light.accent },
+          ]}
+        >
+          ¥{(summary.income - summary.expense).toLocaleString()}
         </Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };

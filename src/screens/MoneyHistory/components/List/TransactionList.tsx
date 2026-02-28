@@ -1,13 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
-import React from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import React, { useState } from 'react';
+import { Alert, FlatList, StyleSheet } from 'react-native';
 
 import { Colors } from '../../../../constants/theme';
 import { Category, Household } from '../../../../index';
 import { deleteHousehold } from '../../../../services/transactionService';
+import { TransactionItem } from './TransactionItem';
 
 interface Props {
   transactions: Household[];
@@ -17,8 +14,16 @@ interface Props {
 }
 
 export const TransactionList: React.FC<Props> = ({ transactions, categories, onRefresh, onEdit }) => {
-  
-  const getCategory = (id: string) => categories.find(c => c.id === id);
+  const [expandedMemos, setExpandedMemos] = useState<Set<string>>(new Set());
+
+  const toggleMemo = (id: string) => {
+    setExpandedMemos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
 
   const handleDelete = async (id: string) => {
     Alert.alert('削除', 'この記録を削除しますか？', [
@@ -38,69 +43,18 @@ export const TransactionList: React.FC<Props> = ({ transactions, categories, onR
     ]);
   };
 
-  const renderRightActions = (item: Household) => {
-    return (
-      <View style={styles.actionContainer}>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: Colors.light.secondary }]}
-          onPress={() => onEdit(item)}
-        >
-          <Ionicons name="create-outline" size={24} color="#fff" />
-          <Text style={styles.actionText}>編集</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: Colors.light.error }]}
-          onPress={() => handleDelete(item.id)}
-        >
-          <Ionicons name="trash-outline" size={24} color="#fff" />
-          <Text style={styles.actionText}>削除</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderItem = ({ item }: { item: Household }) => {
-    const category = getCategory(item.categoryId);
-    const dateStr = format(item.createdAt, 'M/d(E) HH:mm', { locale: ja });
-
-    return (
-      <Swipeable renderRightActions={() => renderRightActions(item)}>
-        <View style={styles.itemContainer}>
-          {/* Category Icon & Color */}
-          <View style={[styles.iconContainer, { backgroundColor: category?.color || '#ccc' }]}>
-            <Ionicons name={(category?.icon as any) || 'help'} size={24} color="#fff" />
-          </View>
-
-          {/* Main Info */}
-          <View style={styles.infoContainer}>
-            <View style={styles.row}>
-              <Text style={styles.categoryName}>{category?.name || '不明'}</Text>
-              <Text style={styles.amount}>¥{item.totalAmount.toLocaleString()}</Text>
-            </View>
-            
-            <View style={styles.row}>
-              <Text style={styles.date}>{dateStr}</Text>
-              {/* 位置情報があれば表示 */}
-              {item.location && (
-                <View style={styles.locationContainer}>
-                  <Ionicons name="location-sharp" size={12} color={Colors.light.gray} />
-                  <Text style={styles.locationText}>保存済み</Text>
-                </View>
-              )}
-            </View>
-            {item.memo && <Text style={styles.memo} numberOfLines={1}>{item.memo}</Text>}
-          </View>
-        </View>
-      </Swipeable>
-    );
-  };
-
   return (
     <FlatList
       data={transactions}
       keyExtractor={(item) => item.id}
-      renderItem={renderItem}
+      renderItem={({ item }) => (
+        <TransactionItem
+          item={item}
+          categories={categories}
+          onEdit={onEdit}
+          onDelete={handleDelete}
+        />
+      )}
       contentContainerStyle={{ paddingBottom: 100 }}
     />
   );
@@ -158,6 +112,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.gray,
     marginTop: 2,
+  },
+  memoContainer: {
+    marginTop: 8,
+  },
+  memoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  memoLabel: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  memoContent: {
+    fontSize: 12,
+    color: Colors.light.text,
+    marginTop: 6,
+    marginLeft: 20,
+    lineHeight: 18,
   },
   actionContainer: {
     flexDirection: 'row',
