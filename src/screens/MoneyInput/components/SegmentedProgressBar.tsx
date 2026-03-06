@@ -1,18 +1,9 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-// 実際のプロジェクトパスに合わせて修正してください
+import { Palette } from '../../../constants/theme';
 import { Category, Household } from '../../../index';
 
-// Design System Constants
-const COLORS = {
-  background: '#EAE5C6',
-  text: '#272D2D',
-  primary: '#6179B5',
-  secondary: '#F4DA61',
-  accent: '#DB8479',
-  gray: '#999999',
-  barBackground: '#E0E0E0',
-};
+const BAR_BACKGROUND = '#E0E0E0';
 
 interface Props {
   categories: Category[];
@@ -94,7 +85,7 @@ export const SegmentedProgressBar: React.FC<Props> = ({
           <Text
             style={[
               styles.percentageText,
-              isOverBudget && { color: COLORS.accent },
+              isOverBudget && { color: Palette.accent },
             ]}
           >
             {Math.round((totalSpent / budget) * 100)}%
@@ -148,7 +139,7 @@ const styles = StyleSheet.create({
   },
   budgetText: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: Palette.gray,
     fontWeight: '500',
   },
   // バーのコンテナ（高さ固定、相対配置の基準点）
@@ -166,7 +157,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 6,
     overflow: 'hidden',
-    backgroundColor: COLORS.barBackground,
+    backgroundColor: BAR_BACKGROUND,
     alignSelf: 'center', // 上下中央揃え
   },
   segment: {
@@ -197,6 +188,6 @@ const styles = StyleSheet.create({
   totalText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.text,
+    color: Palette.text,
   },
 });

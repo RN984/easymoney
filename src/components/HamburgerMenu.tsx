@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../constants/theme';
@@ -8,7 +8,7 @@ export const HamburgerMenu = () => {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
 
-  const handleNavigate = (path: any) => { // pathの型は適宜調整
+  const handleNavigate = (path: Href) => {
     setVisible(false);
     router.push(path);
   };

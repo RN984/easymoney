@@ -36,10 +36,10 @@ export const SummaryHeader: React.FC<SummaryHeaderProps> = ({ summary, onIncomeP
         <Text
           style={[
             styles.amount,
-            { color: summary.income - summary.expense >= 0 ? Colors.light.primary : Colors.light.accent },
+            { color: summary.total >= 0 ? Colors.light.primary : Colors.light.accent },
           ]}
         >
-          ¥{(summary.income - summary.expense).toLocaleString()}
+          ¥{summary.total.toLocaleString()}
         </Text>
       </TouchableOpacity>
     </View>

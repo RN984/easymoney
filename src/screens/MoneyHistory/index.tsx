@@ -56,7 +56,7 @@ export default function MoneyHistoryScreen() {
       />
 
       <MonthlyChart
-        transactions={[...fixedIncomeTransactions, ...transactions] as any}
+        transactions={[...fixedIncomeTransactions, ...transactions]}
         currentDate={currentDate}
         categories={categories}
         viewMode={listMode}
@@ -118,7 +118,7 @@ export default function MoneyHistoryScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={currentData as any}
+        data={currentData}
         keyExtractor={(item) => item.id}
         removeClippedSubviews={false}
         onScrollBeginDrag={() => {

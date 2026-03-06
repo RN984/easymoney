@@ -14,16 +14,22 @@ import {
   View
 } from 'react-native';
 import { Palette } from '../../../../constants/theme';
-import { useSettings } from '../../hooks/useSettings';
 
 // AndroidでLayoutAnimationを有効化
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+interface SalaryAccordionProps {
+  isLoading: boolean;
+  baseSalary: number;
+  salaryDay: number;
+  handleUpdateBaseSalary: (value: number) => Promise<void>;
+  handleUpdateSalaryDay: (day: number) => Promise<void>;
+}
+
 // salaryDay: 0 = 月末, 1-28 = カスタム日付
-export default function SalaryAccordion() {
-  const { isLoading, baseSalary, salaryDay, handleUpdateBaseSalary, handleUpdateSalaryDay } = useSettings();
+export default function SalaryAccordion({ isLoading, baseSalary, salaryDay, handleUpdateBaseSalary, handleUpdateSalaryDay }: SalaryAccordionProps) {
   
   const [expanded, setExpanded] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

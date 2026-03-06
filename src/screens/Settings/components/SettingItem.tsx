@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../../../src/constants/theme';
+import { Colors } from '../../../constants/theme';
 
 interface SettingItemProps {
   icon: keyof typeof Ionicons.glyphMap;

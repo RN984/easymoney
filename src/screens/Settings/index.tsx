@@ -16,7 +16,7 @@ import { useSettings } from './hooks/useSettings';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { isLoading, handleExportCSV, handleResetDatabase } = useSettings();
+  const { isLoading, handleExportCSV, handleResetDatabase, baseSalary, salaryDay, handleUpdateBaseSalary, handleUpdateSalaryDay } = useSettings();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -31,7 +31,13 @@ export default function SettingsScreen() {
         
         {/* Section 1: General Settings */}
         <SettingSection title="一般">
-          <SalaryAccordion />
+          <SalaryAccordion
+            isLoading={isLoading}
+            baseSalary={baseSalary}
+            salaryDay={salaryDay}
+            handleUpdateBaseSalary={handleUpdateBaseSalary}
+            handleUpdateSalaryDay={handleUpdateSalaryDay}
+          />
           <CategoryAccordion />
           <CoinAccordion />
         </SettingSection>

@@ -62,11 +62,11 @@ export const useHistoryScreen = () => {
   }, [transactions, baseSalary, categories]);
 
   // 固定収入のリストアイテムを作成
-  const fixedIncomeTransactions = useMemo(() => {
+  const fixedIncomeTransactions = useMemo((): Household[] => {
     if (baseSalary > 0) {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
-      
+
       // salaryDayが0の場合は月末（その月の最終日）
       let salaryDate: Date;
       if (salaryDay === 0) {
@@ -75,13 +75,12 @@ export const useHistoryScreen = () => {
       } else {
         salaryDate = new Date(year, month, salaryDay);
       }
-      
+
       return [{
         id: 'base_salary',
         categoryId: 'cat_fixed_income',
         totalAmount: baseSalary,
         createdAt: salaryDate,
-        isBaseSalary: true,
       }];
     }
     return [];

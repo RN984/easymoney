@@ -1,7 +1,7 @@
 // src/screens/MoneyInput/components/CategorySelection.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Category, CategoryType } from '../../../../src/index';
+import { Category, CategoryType } from '../../../index';
 import { RadialCategoryMenu } from '../components/RadialCategoryMenu';
 
 interface CategorySelectionProps {

@@ -3,13 +3,13 @@ import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Firestore, getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA1qJOkYoFFRyL7b-oE68wFwDQ_L4s0MTY",
-  authDomain: "easy-money-88144.firebaseapp.com",
-  projectId: "easy-money-88144",
-  storageBucket: "easy-money-88144.firebasestorage.app",
-  messagingSenderId: "355438898094",
-  appId: "1:355438898094:web:e1f3c5a83be2ebd503763f",
-  measurementId: "G-C5CPLNL3VL"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 let app: FirebaseApp;
