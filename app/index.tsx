@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { HamburgerMenu } from '../src/components/HamburgerMenu';
+import { OnboardingOverlay } from '../src/components/OnboardingOverlay';
 import { Palette } from '../src/constants/theme';
+import { useOnboarding } from '../src/hooks/useOnboarding';
 import { EditModal } from '../src/screens/MoneyHistory/components/List/EditModal';
 import { CoinList } from '../src/screens/MoneyInput/components/Coin/CoinList';
 import { FloatingCoin } from '../src/screens/MoneyInput/components/Coin/FloatingCoin';
@@ -22,6 +24,7 @@ export default function MoneyInput() {
   const router = useRouter();
   const [floatingCoins, setFloatingCoins] = useState<FloatingCoinData[]>([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const { isActive: isOnboarding, currentStep, currentStepIndex, totalSteps, next: onboardingNext, skip: onboardingSkip } = useOnboarding();
 
   const {
     categories,
@@ -58,7 +61,7 @@ export default function MoneyInput() {
       // handleAddCoin も CoinValue型 を期待しているのでOK
       await handleAddCoin(value);
     } catch (error) {
-      console.error('Coin add failed', error);
+      // Coin add failed - error handled by service layer
     }
   }, [handleAddCoin]);
 
@@ -185,6 +188,17 @@ export default function MoneyInput() {
         inputType={inputType}
         selectedCategoryId={selectedCategoryId}
       />
+
+      {/* Onboarding */}
+      {isOnboarding && currentStep && (
+        <OnboardingOverlay
+          step={currentStep}
+          stepIndex={currentStepIndex}
+          totalSteps={totalSteps}
+          onNext={onboardingNext}
+          onSkip={onboardingSkip}
+        />
+      )}
 
     </SafeAreaView>
   );

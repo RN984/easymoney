@@ -66,7 +66,7 @@ export const fetchCategories = async (): Promise<Category[]> => {
     await setDoc(docRef, { categories: DEFAULT_CATEGORIES }, { merge: true });
     return DEFAULT_CATEGORIES;
   } catch (error) {
-    console.error('Failed to fetch categories:', error);
+
     return DEFAULT_CATEGORIES;
   }
 };
@@ -79,7 +79,6 @@ export const updateCategories = async (categories: Category[]): Promise<void> =>
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     await setDoc(docRef, { categories }, { merge: true });
   } catch (error) {
-    console.error('Failed to update categories:', error);
     throw new Error('カテゴリの保存に失敗しました。');
   }
 };
@@ -98,7 +97,7 @@ export const fetchBudget = async (): Promise<number> => {
     // デフォルト予算（例: 50,000）
     return 50000;
   } catch (error) {
-    console.error('Failed to fetch budget:', error);
+
     return 50000;
   }
 };
@@ -111,7 +110,6 @@ export const updateBudget = async (budget: number): Promise<void> => {
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     await setDoc(docRef, { budget }, { merge: true });
   } catch (error) {
-    console.error('Failed to update budget:', error);
     throw new Error('予算の保存に失敗しました。');
   }
 };
@@ -130,7 +128,7 @@ export const fetchBaseSalary = async (): Promise<number> => {
     // デフォルトは 0
     return 0;
   } catch (error) {
-    console.error('Failed to fetch baseSalary:', error);
+
     return 0;
   }
 };
@@ -143,7 +141,6 @@ export const updateBaseSalary = async (baseSalary: number): Promise<void> => {
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     await setDoc(docRef, { baseSalary }, { merge: true });
   } catch (error) {
-    console.error('Failed to update baseSalary:', error);
     throw new Error('基本給の保存に失敗しました。');
   }
 };
@@ -162,7 +159,7 @@ export const fetchSalaryDay = async (): Promise<number> => {
     // デフォルトは毎月1日
     return 1;
   } catch (error) {
-    console.error('Failed to fetch salaryDay:', error);
+
     return 1;
   }
 };
@@ -175,7 +172,6 @@ export const updateSalaryDay = async (salaryDay: number): Promise<void> => {
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     await setDoc(docRef, { salaryDay }, { merge: true });
   } catch (error) {
-    console.error('Failed to update salaryDay:', error);
     throw new Error('給料日の保存に失敗しました。');
   }
 };
@@ -198,7 +194,7 @@ export const fetchCoinSettings = async (): Promise<CoinSettings> => {
     }
     return DEFAULT_COIN_SETTINGS;
   } catch (error) {
-    console.error('Failed to fetch coinSettings:', error);
+
     return DEFAULT_COIN_SETTINGS;
   }
 };
@@ -211,7 +207,6 @@ export const updateCoinSettings = async (coinSettings: CoinSettings): Promise<vo
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     await setDoc(docRef, { coinSettings }, { merge: true });
   } catch (error) {
-    console.error('Failed to update coinSettings:', error);
     throw new Error('コイン設定の保存に失敗しました。');
   }
 };

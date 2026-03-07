@@ -1,7 +1,8 @@
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { resetOnboarding } from '../../../hooks/useOnboarding';
 import { fetchBaseSalary, fetchCategories, fetchSalaryDay, updateBaseSalary, updateSalaryDay } from '../../../services/masterService';
 import { getMonthlyTransactions, resetAllData } from '../../../services/transactionService';
 
@@ -24,8 +25,8 @@ export const useSettings = () => {
           setBaseSalary(s);
           setSalaryDay(day);
         }
-      } catch (e) {
-        console.error(e);
+      } catch (_) {
+        // Initial load failed silently
       }
     })();
     return () => { mounted = false; };
@@ -51,20 +52,9 @@ export const useSettings = () => {
       const csvContent = header + rows;
 
       // 3. ファイル書き出し
-      // 【修正】TypeScriptの型エラーを回避するため、一時的にany型として扱います
-      const fs = FileSystem as any;
-      const dir = fs.documentDirectory;
-
-      if (!dir) {
-        throw new Error('デバイスの保存領域（documentDirectory）にアクセスできません');
-      }
-
-      const fileUri = dir + 'easymoney_export.csv';
-      
-      // EncodingTypeのエラーも回避するため、直接文字列を指定
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-        encoding: 'utf8'
-      });
+      const file = new File(Paths.document, 'easymoney_export.csv');
+      file.write(csvContent);
+      const fileUri = file.uri;
 
       // 4. シェア
       if (await Sharing.isAvailableAsync()) {
@@ -73,8 +63,7 @@ export const useSettings = () => {
         Alert.alert('エラー', 'このデバイスでは共有機能が利用できません');
       }
 
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
       Alert.alert('エラー', 'CSVのエクスポートに失敗しました');
     } finally {
       setIsLoading(false);
@@ -95,11 +84,11 @@ export const useSettings = () => {
             setIsLoading(true);
             try {
               await resetAllData();
+              await resetOnboarding();
               setBaseSalary(0);
               setSalaryDay(1);
               Alert.alert('完了', 'データベースをリセットしました。');
-            } catch (e) {
-              console.error(e);
+            } catch (_) {
               Alert.alert('エラー', 'データベースのリセットに失敗しました。');
             } finally {
               setIsLoading(false);
@@ -115,8 +104,7 @@ export const useSettings = () => {
     try {
       await updateBaseSalary(value);
       setBaseSalary(value);
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
       Alert.alert('エラー', '基本給の保存に失敗しました');
     } finally {
       setIsLoading(false);
@@ -127,8 +115,7 @@ export const useSettings = () => {
     try {
       await updateSalaryDay(day);
       setSalaryDay(day);
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
       Alert.alert('エラー', '給料日の保存に失敗しました');
     }
   }, []);

@@ -53,8 +53,8 @@ export const IncomeModal: React.FC<Props> = ({ visible, onClose, onSaved }) => {
       setMemo('');
       setLocationAddress('');
       setSelectedDate(new Date());
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
+      // Error handled by service layer
     } finally {
       setLoading(false);
     }

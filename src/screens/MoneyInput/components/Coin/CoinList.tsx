@@ -40,8 +40,6 @@ export const CoinList: React.FC<CoinListProps> = ({ onPressCoin, onAddPress, coi
   const handleAddPress = () => {
     if (typeof onAddPress === 'function') {
       onAddPress();
-    } else {
-      console.error('onAddPress is not a function:', onAddPress);
     }
   };
 

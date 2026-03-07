@@ -23,7 +23,6 @@ try {
   }
   db = getFirestore(app);
 } catch (error) {
-  console.error('Firebase initialization failed:', error);
   throw error;
 }
 

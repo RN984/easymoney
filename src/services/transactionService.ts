@@ -95,7 +95,6 @@ export const createHousehold = async (data: CreateHouseholdDTO): Promise<Househo
     );
     return { ...data, id: docRef.id };
   } catch (error) {
-    console.error('Error creating household header:', error);
     throw new Error('家計簿データの作成に失敗しました。');
   }
 };
@@ -123,7 +122,6 @@ export const updateHousehold = async (id: string, data: UpdateHouseholdDTO): Pro
     
     await updateDoc(docRef, updateData);
   } catch (error) {
-    console.error(`Error updating household ${id}:`, error);
     throw new Error('データの更新に失敗しました。');
   }
 };
@@ -148,7 +146,6 @@ export const deleteHousehold = async (id: string): Promise<void> => {
 
     await batch.commit();
   } catch (error) {
-    console.error(`Error deleting household ${id}:`, error);
     throw new Error('データの削除に失敗しました。');
   }
 };
@@ -178,7 +175,6 @@ export const addItemToHousehold = async (parentId: string, data: Omit<CreateHous
       return newItem;
     });
   } catch (error) {
-    console.error(`Error adding item to household ${parentId}:`, error);
     throw new Error('明細の追加と集計更新に失敗しました。');
   }
 };
@@ -201,7 +197,6 @@ export const getMonthlyTransactions = async (date: Date): Promise<Household[]> =
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data());
   } catch (error) {
-    console.error('Error fetching monthly transactions:', error);
     throw new Error('月次データの取得に失敗しました。');
   }
 };
@@ -213,7 +208,6 @@ export const getAllTransactions = async (): Promise<Household[]> => {
     );
     return querySnapshot.docs.map(doc => doc.data());
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     throw new Error('データ取得に失敗しました。');
   }
 };
@@ -267,7 +261,6 @@ export const resetAllData = async (): Promise<void> => {
       await batch.commit();
     }
   } catch (error) {
-    console.error('Error resetting database:', error);
     throw new Error('データベースのリセットに失敗しました。');
   }
 };

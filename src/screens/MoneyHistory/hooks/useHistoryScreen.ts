@@ -103,7 +103,6 @@ export const useHistoryScreen = () => {
       setSalaryDay(day);
       setCategories(cats);
     } catch (error) {
-      console.error(error);
       Alert.alert('エラー', '履歴の取得に失敗しました');
     } finally {
       setIsLoading(false);

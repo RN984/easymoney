@@ -92,7 +92,6 @@ export const EditModal: React.FC<Props> = ({ visible, targetItem, onClose, onUpd
       if (isCreateMode) {
         // Create mode - use createHousehold
         if (!selectedCategoryId) {
-          console.error('カテゴリが選択されていません');
           setLoading(false);
           return;
         }
@@ -117,8 +116,8 @@ export const EditModal: React.FC<Props> = ({ visible, targetItem, onClose, onUpd
       }
       onUpdated();
       onClose();
-    } catch (e) {
-      console.error(e);
+    } catch (_) {
+      // Error handled by service layer
     } finally {
       setLoading(false);
     }

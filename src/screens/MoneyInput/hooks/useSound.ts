@@ -15,7 +15,7 @@ export const useSound = () => {
         const { sound } = await Audio.Sound.createAsync(COIN_SOUND_SOURCE);
         soundRef.current = sound;
       } catch (error) {
-        console.warn('Failed to load sound', error);
+        // Sound loading failed silently
       }
     };
 
@@ -34,7 +34,7 @@ export const useSound = () => {
         await soundRef.current.replayAsync();
       }
     } catch (error) {
-      console.warn('Failed to play sound', error);
+      // Sound playback failed silently
     }
   }, []);
 

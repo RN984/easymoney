@@ -84,7 +84,6 @@ export const useMoneyInput = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to load data', error);
       Alert.alert('エラー', 'データの読み込みに失敗しました');
     }
   }, []);
@@ -149,7 +148,6 @@ export const useMoneyInput = () => {
     
     // カテゴリが未選択（初期状態など）なら何もしない
     if (!currentCategoryId) {
-      console.warn('Category not selected, skipping coin add.');
       return;
     }
 
@@ -221,7 +219,6 @@ export const useMoneyInput = () => {
           const txs = await getMonthlyTransactions(new Date());
           setTransactions(txs);
         } catch (error) {
-          console.error('Transaction Error:', error);
           Alert.alert('エラー', '保存に失敗しました');
           currentHouseholdIdRef.current = null;
           // UI側でエラーハンドリングできるようにエラーを再スロー
