@@ -2,9 +2,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-// import { resetDatabase } from '../../../database/db'; 
 import { fetchBaseSalary, fetchCategories, fetchSalaryDay, updateBaseSalary, updateSalaryDay } from '../../../services/masterService';
-import { getMonthlyTransactions } from '../../../services/transactionService';
+import { getMonthlyTransactions, resetAllData } from '../../../services/transactionService';
 
 // salaryDay: 0 = 月末, 1-28 = カスタム日付
 export const useSettings = () => {
@@ -85,9 +84,29 @@ export const useSettings = () => {
   // DBリセット処理
   const handleResetDatabase = useCallback(() => {
     Alert.alert(
-      '機能未実装',
-      'データベースのリセット機能は現在準備中です。',
-      [{ text: 'OK' }]
+      'データベースリセット',
+      '全ての家計簿データと設定が削除されます。この操作は取り消せません。本当にリセットしますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: 'リセット',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              await resetAllData();
+              setBaseSalary(0);
+              setSalaryDay(1);
+              Alert.alert('完了', 'データベースをリセットしました。');
+            } catch (e) {
+              console.error(e);
+              Alert.alert('エラー', 'データベースのリセットに失敗しました。');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
     );
   }, []);
 

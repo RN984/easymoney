@@ -2,7 +2,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   DocumentData,
   FirestoreDataConverter,
@@ -15,7 +14,8 @@ import {
   SnapshotOptions,
   Timestamp,
   updateDoc,
-  where
+  where,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../database/db';
 import {
@@ -129,15 +129,24 @@ export const updateHousehold = async (id: string, data: UpdateHouseholdDTO): Pro
 };
 
 /**
- * 家計簿データを削除します。
- * 注意: サブコレクション(items)はクライアントSDKの deleteDoc では自動削除されません。
- * 厳密なクリーンアップが必要な場合は Cloud Functions を推奨しますが、
- * 今回のスコープでは親ドキュメントの削除のみ実装します。
+ * 家計簿データとそのサブコレクション(items)を削除します。
  */
 export const deleteHousehold = async (id: string): Promise<void> => {
   try {
-    const docRef = doc(db, 'households', id);
-    await deleteDoc(docRef);
+    const batch = writeBatch(db);
+
+    // サブコレクション(items)を先に削除
+    const itemsSnapshot = await getDocs(
+      collection(db, 'households', id, 'items')
+    );
+    itemsSnapshot.docs.forEach((itemDoc) => {
+      batch.delete(itemDoc.ref);
+    });
+
+    // 親ドキュメントを削除
+    batch.delete(doc(db, 'households', id));
+
+    await batch.commit();
   } catch (error) {
     console.error(`Error deleting household ${id}:`, error);
     throw new Error('データの削除に失敗しました。');
@@ -206,5 +215,59 @@ export const getAllTransactions = async (): Promise<Household[]> => {
   } catch (error) {
     console.error('Error fetching transactions:', error);
     throw new Error('データ取得に失敗しました。');
+  }
+};
+
+/**
+ * 全ての家計簿データ（親+子）と設定をリセットします。
+ * Firestoreのバッチ書き込みは500件制限があるため、分割して削除します。
+ */
+export const resetAllData = async (): Promise<void> => {
+  try {
+    const householdsSnapshot = await getDocs(collection(db, 'households'));
+
+    // バッチ制限（500件）を考慮して分割処理
+    const BATCH_LIMIT = 499;
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const householdDoc of householdsSnapshot.docs) {
+      // サブコレクション(items)を先に削除
+      const itemsSnapshot = await getDocs(
+        collection(db, 'households', householdDoc.id, 'items')
+      );
+      for (const itemDoc of itemsSnapshot.docs) {
+        batch.delete(itemDoc.ref);
+        count++;
+        if (count >= BATCH_LIMIT) {
+          await batch.commit();
+          batch = writeBatch(db);
+          count = 0;
+        }
+      }
+
+      // 親ドキュメントを削除
+      batch.delete(householdDoc.ref);
+      count++;
+      if (count >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        count = 0;
+      }
+    }
+
+    // 設定ドキュメントも削除
+    const settingsSnapshot = await getDocs(collection(db, 'settings'));
+    for (const settingDoc of settingsSnapshot.docs) {
+      batch.delete(settingDoc.ref);
+      count++;
+    }
+
+    if (count > 0) {
+      await batch.commit();
+    }
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    throw new Error('データベースのリセットに失敗しました。');
   }
 };
