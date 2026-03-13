@@ -6,6 +6,7 @@ import { Alert } from 'react-native';
 import { Category, CategoryType, CoinSettings, Household, LocationData } from '../../../index';
 import { fetchBudget, fetchCategories, fetchCoinSettings } from '../../../services/masterService';
 import { addItemToHousehold, createHousehold, getMonthlyTransactions } from '../../../services/transactionService';
+import { syncAllToWidget, syncSpendingToWidget, consumePendingTransactions } from '../../../services/widgetService';
 import { useSound } from './useSound';
 
 export const useMoneyInput = () => {
@@ -63,6 +64,30 @@ export const useMoneyInput = () => {
       setBudget(bud);
       setTransactions(txs);
       setCoinSettings(cs);
+
+      // ウィジェットにデータを同期
+      syncAllToWidget(txs, bud, cats, cs);
+
+      // ウィジェットからの保留中トランザクションを処理
+      const pending = consumePendingTransactions();
+      if (pending.length > 0) {
+        for (const pt of pending) {
+          const header = await createHousehold({
+            categoryId: pt.categoryId,
+            totalAmount: 0,
+            createdAt: new Date(pt.timestamp),
+          });
+          await addItemToHousehold(header.id, {
+            categoryId: pt.categoryId,
+            amount: pt.coinAmount,
+            createdAt: new Date(pt.timestamp),
+          });
+        }
+        // 保留分を反映した履歴を再取得
+        const updatedTxs = await getMonthlyTransactions(new Date());
+        setTransactions(updatedTxs);
+        syncSpendingToWidget(updatedTxs, bud, cats);
+      }
 
       // カテゴリ初期選択（支出を優先、MoneyInputで表示可能なものだけ）
       const firstExpense = cats.find((c) => c.type !== 'income' && c.showInInput !== false);
@@ -218,6 +243,8 @@ export const useMoneyInput = () => {
           // 履歴を再取得してバーに反映
           const txs = await getMonthlyTransactions(new Date());
           setTransactions(txs);
+          // ウィジェットの支出データを更新
+          syncSpendingToWidget(txs, budget, categories);
         } catch (error) {
           Alert.alert('エラー', '保存に失敗しました');
           currentHouseholdIdRef.current = null;
@@ -232,7 +259,7 @@ export const useMoneyInput = () => {
     // この関数を呼び出した側が完了を待てるように、Promiseをawaitする
     await transactionPromise;
 
-  }, [categories, location, playCoinSound]);
+  }, [categories, location, playCoinSound, budget]);
 
   return {
     // Data

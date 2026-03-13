@@ -1,8 +1,8 @@
 // src/screens/Settings/index.tsx
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/theme';
+import { Colors, Palette } from '../../constants/theme';
 
 // Components
 import CategoryAccordion from './components/Category/Accordion';
@@ -42,7 +42,33 @@ export default function SettingsScreen() {
           <CoinAccordion />
         </SettingSection>
 
-        {/* Section 2: Data Management */}
+        {/* Section 2: Widget (iOS only) */}
+        {Platform.OS === 'ios' && (
+          <SettingSection title="ウィジェット">
+            <View style={styles.widgetInfo}>
+              <Text style={styles.widgetTitle}>ホーム画面ウィジェット</Text>
+              <Text style={styles.widgetDesc}>
+                ホーム画面を長押し → 左上の「＋」→「easymoney」で追加できます。
+              </Text>
+              <View style={styles.widgetTypes}>
+                <View style={styles.widgetType}>
+                  <Text style={styles.widgetTypeName}>クイック入力</Text>
+                  <Text style={styles.widgetTypeDesc}>コインをタップして素早く記録</Text>
+                </View>
+                <View style={styles.widgetType}>
+                  <Text style={styles.widgetTypeName}>支出状況</Text>
+                  <Text style={styles.widgetTypeDesc}>今月の支出と予算の進捗</Text>
+                </View>
+              </View>
+              <Text style={styles.widgetHint}>
+                ※ コインの表示は上の「コインリスト設定」と連動します{'\n'}
+                ※ カテゴリはウィジェット長押し →「ウィジェットを編集」で変更
+              </Text>
+            </View>
+          </SettingSection>
+        )}
+
+        {/* Section 3: Data Management */}
         <SettingSection title="データ管理">
           <SettingItem
             icon="download-outline"
@@ -88,5 +114,46 @@ const styles = StyleSheet.create({
     zIndex: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  widgetInfo: {
+    padding: 16,
+  },
+  widgetTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: Palette.text,
+    marginBottom: 6,
+  },
+  widgetDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  widgetTypes: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  widgetType: {
+    flex: 1,
+    backgroundColor: Palette.background,
+    borderRadius: 10,
+    padding: 10,
+  },
+  widgetTypeName: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Palette.text,
+    marginBottom: 2,
+  },
+  widgetTypeDesc: {
+    fontSize: 11,
+    color: '#888',
+  },
+  widgetHint: {
+    fontSize: 11,
+    color: '#999',
+    lineHeight: 16,
   },
 });

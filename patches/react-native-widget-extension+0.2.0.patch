@@ -1,0 +1,22 @@
+diff --git a/node_modules/react-native-widget-extension/ios/Attributes.swift b/node_modules/react-native-widget-extension/ios/Attributes.swift
+new file mode 100644
+index 0000000..668a6f1
+--- /dev/null
++++ b/node_modules/react-native-widget-extension/ios/Attributes.swift
+@@ -0,0 +1,3 @@
++// Placeholder for Live Activities Attributes
++// Currently not used - required by react-native-widget-extension plugin
++import Foundation
+diff --git a/node_modules/react-native-widget-extension/ios/Module.swift b/node_modules/react-native-widget-extension/ios/Module.swift
+new file mode 100644
+index 0000000..3649377
+--- /dev/null
++++ b/node_modules/react-native-widget-extension/ios/Module.swift
+@@ -0,0 +1,7 @@
++import ExpoModulesCore
++
++public class ReactNativeWidgetExtensionModule: Module {
++  public func definition() -> ModuleDefinition {
++    Name("ReactNativeWidgetExtension")
++  }
++}

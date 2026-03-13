@@ -47,6 +47,15 @@
         {
           "locationAlwaysAndWhenInUsePermission": "家計簿の記録場所を保存するために位置情報を使用します。"
         }
+      ],
+      [
+        "react-native-widget-extension",
+        {
+          "widgetsFolder": "widgets",
+          "groupIdentifier": "group.com.easymoney.app",
+          "deploymentTarget": "17.0",
+          "frequentUpdates": false
+        }
       ]
     ],
     "experiments": {

@@ -15,6 +15,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Palette } from '../../../../constants/theme';
 import { CoinSettings, CoinValue, CustomCoin } from '../../../../index';
 import { fetchCoinSettings, updateCoinSettings } from '../../../../services/masterService';
+import { syncCoinsToWidget } from '../../../../services/widgetService';
 import CoinEditModal from './CoinEditModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -73,6 +74,7 @@ export default function CoinAccordion() {
     const updated = { ...settings, hiddenCoins };
     setSettings(updated);
     await updateCoinSettings(updated);
+    syncCoinsToWidget(updated);
   };
 
   const openEditModal = (coin: CustomCoin | null) => {
@@ -92,6 +94,7 @@ export default function CoinAccordion() {
     const updated = { ...settings, customCoins: updatedCoins };
     setSettings(updated);
     await updateCoinSettings(updated);
+    syncCoinsToWidget(updated);
     setModalVisible(false);
   };
 
@@ -106,6 +109,7 @@ export default function CoinAccordion() {
           const updated = { ...settings, customCoins: updatedCoins };
           setSettings(updated);
           await updateCoinSettings(updated);
+          syncCoinsToWidget(updated);
         },
       },
     ]);
